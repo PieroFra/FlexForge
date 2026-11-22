@@ -929,6 +929,35 @@ def test_capsule_radius_honors_explicit_large_radius():
     assert radius > muscle_skinning.DEFAULT_RADIUS, radius
 
 
+def test_compute_muscle_weights_large_radius_beats_bone_envelope():
+    """Regression: an explicit Bind radius above the default binds the vertex.
+
+    A Dwarf body reported a 0.1 bone envelope: `min(radius, capsule)` kept the
+    capsule at 0.1 and the span cap cut it further, so a vertex at 0.18 from the
+    axis stayed unbound and the user's Bind radius of 0.25 was cancelled.
+    """
+    segments = {
+        "muscle_a": {
+            "head_local": (0.0, 0.0, 0.0),
+            "tail_local": (0.0, 1.0, 0.0),
+            "radius": 0.1,
+        }
+    }
+    coordinates = [(0.18, 0.5, 0.0)]
+    widened = muscle_skinning.compute_muscle_weights(
+        {}, coordinates, segments, radius=0.25
+    )
+    assert widened["vertices_bound"] == 1, widened
+    assert abs(widened["weights"][0]["muscle_a"]) > 0.0, widened["weights"]
+    # The 0.1 bone envelope alone still leaves the vertex out: the widened
+    # capsule, not a mask change, is what binds it.
+    bare = muscle_skinning.compute_muscle_weights(
+        {}, coordinates, segments, radius=muscle_skinning.DEFAULT_RADIUS
+    )
+    assert bare["vertices_bound"] == 0, bare
+    assert bare["weights"][0] == {}, bare["weights"]
+
+
 def _main():
     tests = [
         test_segment_distance_midpoint_and_endpoints,
@@ -955,6 +984,7 @@ def _main():
         test_body_scale_mesh_lifts_the_span_cap,
         test_capsule_radius_keeps_span_cap_on_human_scale,
         test_capsule_radius_honors_explicit_large_radius,
+        test_compute_muscle_weights_large_radius_beats_bone_envelope,
         test_apply_muscle_skinning_excludes_foot,
         test_side_filter_drops_the_opposite_side,
         test_apply_muscle_skinning_torso_side_filter,

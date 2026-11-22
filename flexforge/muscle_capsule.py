@@ -186,7 +186,14 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
         capsule = value.get("radius") if isinstance(value, dict) else None
         if not isinstance(capsule, (int, float)) or capsule <= 0.0:
             capsule = radius
-        segments[str(name)] = (head, tail, min(radius, float(capsule)),
+        # A radius the user raised above the default is an explicit Bind radius:
+        # it wins over the bone envelope (`min` kept it at the 0.1 default and
+        # the span cap then dropped it to nothing, cancelling the Bind radius).
+        if radius > DEFAULT_RADIUS:
+            effective = float(radius)
+        else:
+            effective = min(radius, float(capsule))
+        segments[str(name)] = (head, tail, effective,
                                _capsule_side(value, head, tail))
     segments = {
         name: (head, tail, _capsule_radius(
