@@ -90,7 +90,13 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
                 op.origin_bone = settings.origin_bone
                 op.insertion_bone = settings.insertion_bone
                 op.segments = settings.segments
-        box.operator("flexforge.bind_muscles", text="Bind muscles", icon="MOD_SKIN")
+        if settings is not None:
+            box.prop(settings, "bind_radius")
+        op_bind = box.operator(
+            "flexforge.bind_muscles", text="Bind muscles", icon="MOD_SKIN"
+        )
+        if settings is not None:
+            op_bind.radius = settings.bind_radius
         if settings is not None:
             box.prop(settings, "displacement")
             box.prop(settings, "anatomical_taper")

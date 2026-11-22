@@ -42,6 +42,26 @@ def _bone_segment(bone):
     tail = getattr(bone, "tail_local", None) or getattr(bone, "tail", None)
     return tuple(head), tuple(tail)
 
+def _armature_to_mesh_matrix(obj, armature):
+    """Armature local space to mesh local space, with its uniform scale.
+
+    A rig carrying `scale=(0.01,) * 3` and a 90 degree rotation (any FBX/GLB
+    import) lives in a different space than the mesh: bone head/tail and the
+    capsule radius must travel through this matrix. Returns `(None, 1.0)` when
+    the objects have no world matrix, so the fake objects keep working.
+    """
+    world = getattr(armature, "matrix_world", None)
+    mesh_world = getattr(obj, "matrix_world", None) if obj is not None else None
+    if world is None or mesh_world is None:
+        return None, 1.0
+    matrix = mesh_world.inverted() @ world
+    return matrix, max(abs(value) for value in matrix.to_scale()) or 1.0
+
+def _matrix_point(matrix, point):
+    """Apply a 4x4 matrix to a point; mathutils is imported on demand."""
+    from mathutils import Vector
+    return tuple(matrix @ Vector(tuple(point)))
+
 def _parent_owner(bone):
     """Nearest non-muscle ancestor of a helper (its origin bone), or ''."""
     parent = getattr(bone, "parent", None)
@@ -85,14 +105,17 @@ def apply_muscle_skinning(obj, armature=None, radius=DEFAULT_RADIUS,
     if armature is None or getattr(armature, "type", None) != "ARMATURE":
         raise SkinningError("An armature is required: add an Armature modifier.")
 
+    matrix, scale = _armature_to_mesh_matrix(obj, armature)
     bones = list(armature.data.bones)
     segments = {}
     bone_masks = {}
     for bone in bones:
         if bone.use_deform and bone.name.startswith(MUSCLE_PREFIX):
             head, tail = _bone_segment(bone)
+            if matrix is not None:
+                head, tail = _matrix_point(matrix, head), _matrix_point(matrix, tail)
             segment = {"head_local": head, "tail_local": tail,
-                       "radius": bone_radius(bone)}
+                       "radius": bone_radius(bone) * scale}
             if is_torso_bone(_parent_owner(bone)):
                 segment["side_filter"] = True
             segments[bone.name] = segment

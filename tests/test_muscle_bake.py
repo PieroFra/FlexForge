@@ -904,6 +904,69 @@ def test_apply_real_blender():
         bpy.data.armatures.remove(armature_data)
 
 
+def test_apply_muscle_bake_with_scaled_rotated_armature():
+    """A rig with scale 0.01 and a 90 degree turn on X must still bake.
+
+    Same shape as the skinning regression: without bringing the bone head/tail
+    and the envelope into the mesh space the segments stay at the armature
+    origin, so the keys are created but no vertex is displaced.
+    """
+    from mathutils import Matrix
+
+    armature_data = bpy.data.armatures.new("flexforge_bake_scaled_arm")
+    armature = bpy.data.objects.new("flexforge_bake_scaled_arm", armature_data)
+    bpy.context.scene.collection.objects.link(armature)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    parent_bone = armature_data.edit_bones.new("upper_arm.L")
+    parent_bone.head = (0.0, 0.0, 0.0)
+    parent_bone.tail = (0.0, 10.0, 0.0)
+    muscle_bone = armature_data.edit_bones.new("muscle_biceps_01")
+    muscle_bone.head = (0.0, 0.0, 0.0)
+    muscle_bone.tail = (0.0, 10.0, 0.0)
+    muscle_bone.parent = parent_bone
+    for bone in (parent_bone, muscle_bone):
+        bone.head_radius = 2.0
+        bone.tail_radius = 2.0
+    bpy.ops.object.mode_set(mode="OBJECT")
+    armature.matrix_world = (Matrix.Rotation(math.pi / 2.0, 4, "X")
+                             @ Matrix.Diagonal((0.01, 0.01, 0.01, 1.0)))
+
+    mesh = bpy.data.meshes.new("flexforge_bake_scaled_mesh")
+    mesh.from_pydata(
+        [(0.005, 0.0, 0.01), (0.005, 0.0, 0.05), (0.005, 0.0, 0.09)],
+        [], [(0, 1), (1, 2)],
+    )
+    obj = bpy.data.objects.new("flexforge_bake_scaled_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    assert tuple(obj.scale) == (1.0, 1.0, 1.0), tuple(obj.scale)
+    parent_group = obj.vertex_groups.new(name="upper_arm.L")
+    muscle_group = obj.vertex_groups.new(name="muscle_biceps_01")
+    for index in range(3):
+        parent_group.add([index], 0.5, "REPLACE")
+        muscle_group.add([index], 0.5, "REPLACE")
+    modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+    modifier.object = armature
+
+    try:
+        report = muscle_bake.apply_muscle_bake(obj)
+        assert report["shape_keys"] >= 1, report
+        assert report["vertices_displaced"] > 0, report
+        keys = obj.data.shape_keys.key_blocks
+        assert keys[0].name == "Basis", keys[0].name
+        moved = [
+            vertex.index for vertex in obj.data.vertices
+            if tuple(keys[1].data[vertex.index].co) != tuple(vertex.co)
+        ]
+        assert len(moved) == report["vertices_displaced"], (moved, report)
+    finally:
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.objects.remove(armature, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.armatures.remove(armature_data)
+
+
 def _rotate_z_quaternion():
     """Quaternion of a 90 degree turn about Z: its angle is pi / 2."""
     half = math.sqrt(0.5)
@@ -1217,6 +1280,7 @@ def _main():
         test_operator_execute_cancelled,
         test_operator_execute_finished,
         test_apply_real_blender,
+        test_apply_muscle_bake_with_scaled_rotated_armature,
         test_attach_pose_drivers_creates_rotation_diff,
         test_attach_pose_drivers_ignores_missing_targets,
         test_attach_pose_drivers_rejects_non_positive_max_angle,

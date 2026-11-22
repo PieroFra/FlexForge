@@ -9,6 +9,7 @@ import bpy
 from .armatura import armature_of_mesh
 from .muscle import MUSCLE_PREFIX
 from .muscle_anatomy import smooth_shape_deltas
+from .muscle_skinning import _armature_to_mesh_matrix, _matrix_point
 from .muscle_drivers import (attach_pose_drivers, DEFAULT_MAX_ANGLE_RAD, STRETCH_TO_CONSTRAINT, _driver_bone_pair)
 from .muscle_shape import (BakeError, DEFAULT_BONE_RADIUS, DEFAULT_DISPLACEMENT,
                            MAX_DISPLACEMENT_RATIO, SHAPE_KEY_PREFIX, bone_radius,
@@ -49,11 +50,16 @@ def collapse_muscle_weights_to_parent(weights, bone_parents,
         collapsed[vertex] = merged
     return limit_influences(collapsed, max_influences)
 
-def _muscle_segments_of_armature(armature):
-    """Return ({bone: (head, tail)}, {bone: parent_name}, {bone: radius})."""
+def _muscle_segments_of_armature(armature, obj=None):
+    """Return ({bone: (head, tail)}, {bone: parent_name}, {bone: radius}).
+
+    With `obj` the head/tail and the envelope are moved into the mesh space, so
+    a rig scaled to centimetres and turned 90 degrees still maps its capsules.
+    """
     segments = {}
     bone_parents = {}
     radii = {}
+    matrix, scale = _armature_to_mesh_matrix(obj, armature)
     bones = getattr(getattr(armature, "data", None), "bones", None) or []
     for bone in bones:
         name = getattr(bone, "name", "")
@@ -65,11 +71,13 @@ def _muscle_segments_of_armature(armature):
         tail = getattr(bone, "tail_local", None) or getattr(bone, "tail", None)
         if head is None or tail is None:
             raise BakeError("Bone '%s' has no rest head/tail." % name)
+        if matrix is not None:
+            head, tail = _matrix_point(matrix, head), _matrix_point(matrix, tail)
         segments[name] = (tuple(head), tuple(tail))
         # A tiny FBX envelope (e.g. 1 mm after transform_apply) would squash the
         # bulge cap to nothing: under the default radius the segment length is
         # a firmer floor, standard bones keep their own envelope untouched.
-        radius = bone_radius(bone)
+        radius = bone_radius(bone) * scale
         if radius < DEFAULT_BONE_RADIUS:
             span = sum((tuple(tail)[i] - tuple(head)[i]) ** 2
                        for i in range(3)) ** 0.5
@@ -117,7 +125,7 @@ def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
         armature = armature_of_mesh(obj)
     if armature is None or getattr(armature, "type", None) != "ARMATURE":
         raise BakeError("An armature is required: add an Armature modifier or pass one.")
-    segments, bone_parents, radii = _muscle_segments_of_armature(armature)
+    segments, bone_parents, radii = _muscle_segments_of_armature(armature, obj)
     if not segments:
         raise BakeError("No 'muscle_' bones found in the armature.")
     weights = read_weights(obj)

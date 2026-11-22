@@ -3,6 +3,7 @@
 # the test mesh and armature are fake (same minimal interface as
 # Mesh/VertexGroup/Bone) and work identically inside Blender too.
 
+import math
 import sys
 import traceback
 import types
@@ -610,6 +611,71 @@ def test_apply_muscle_skinning_torso_side_filter():
     assert "muscle_biceps" in obj.weights_by_name(3), obj.weights_by_name(3)
 
 
+def test_apply_muscle_skinning_with_scaled_rotated_armature():
+    """A rig with scale 0.01 and a 90 degree turn on X must still bind.
+
+    Real FBX/GLB rigs (any Mixamo import) live in a different space than the
+    mesh: the bone head/tail and the envelope have to travel through
+    `mesh.matrix_world.inverted() @ armature.matrix_world`, otherwise the
+    capsule sits at the origin of the mesh space and binds nothing.
+    """
+    from mathutils import Matrix
+
+    armature_data = bpy.data.armatures.new("flexforge_skinned_rig")
+    armature = bpy.data.objects.new("flexforge_skinned_rig", armature_data)
+    bpy.context.scene.collection.objects.link(armature)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    parent_bone = armature_data.edit_bones.new("upper_arm.L")
+    parent_bone.head = (0.0, 0.0, 0.0)
+    parent_bone.tail = (0.0, 10.0, 0.0)
+    muscle_bone = armature_data.edit_bones.new("muscle_biceps_01")
+    muscle_bone.head = (0.0, 0.0, 0.0)
+    muscle_bone.tail = (0.0, 10.0, 0.0)
+    muscle_bone.parent = parent_bone
+    for bone in (parent_bone, muscle_bone):
+        bone.head_radius = 2.0
+        bone.tail_radius = 2.0
+    bpy.ops.object.mode_set(mode="OBJECT")
+    # 10 centimetres of armature become 0.1 m on the mesh, turned 90 degrees.
+    armature.matrix_world = (Matrix.Rotation(math.pi / 2.0, 4, "X")
+                             @ Matrix.Diagonal((0.01, 0.01, 0.01, 1.0)))
+
+    mesh = bpy.data.meshes.new("flexforge_skinned_mesh")
+    mesh.from_pydata(
+        [(0.005, 0.0, 0.01), (0.005, 0.0, 0.05), (0.005, 0.0, 0.09)],
+        [], [(0, 1), (1, 2)],
+    )
+    obj = bpy.data.objects.new("flexforge_skinned_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    assert tuple(obj.scale) == (1.0, 1.0, 1.0), tuple(obj.scale)
+    parent_group = obj.vertex_groups.new(name="upper_arm.L")
+    for index in range(3):
+        parent_group.add([index], 1.0, "REPLACE")
+    modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+    modifier.object = armature
+
+    try:
+        report = muscle_skinning.apply_muscle_skinning(obj)
+        assert report["vertices_bound"] > 0, report
+        assert report["muscles_bound"] == 1, report
+        names = {group.name for group in obj.vertex_groups}
+        assert "muscle_biceps_01" in names, names
+        by_index = {group.index: group.name for group in obj.vertex_groups}
+        bound = [
+            vertex.index for vertex in obj.data.vertices
+            if any(by_index[element.group] == "muscle_biceps_01"
+                   for element in vertex.groups)
+        ]
+        assert len(bound) == report["vertices_bound"], (bound, report)
+    finally:
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.objects.remove(armature, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.armatures.remove(armature_data)
+
+
 def test_skinning_message():
     message = muscle_skinning.skinning_message(
         {"vertices": 8, "vertices_bound": 5, "muscles_bound": 2}
@@ -850,6 +916,19 @@ def test_sixteen_helpers_bind_on_a_body_scale_mesh():
         assert nearest.name in groups, (index, groups)
 
 
+def test_capsule_radius_honors_explicit_large_radius():
+    """Regression: a wide/bulky character needs a capsule wider than the span cap.
+
+    A SpaceDwarf-style body on short helpers capped the capsule at half the
+    span (0.06) and bound no skin. A radius the user raised above the default is
+    an explicit widening and is returned untouched.
+    """
+    head, tail = (0.0, 0.0, 0.0), (0.0, 0.0, 0.12)
+    radius = muscle_skinning._capsule_radius(0.25, head, tail, 0.12)
+    assert radius == 0.25, radius
+    assert radius > muscle_skinning.DEFAULT_RADIUS, radius
+
+
 def _main():
     tests = [
         test_segment_distance_midpoint_and_endpoints,
@@ -875,9 +954,11 @@ def _main():
         test_exclude_keeps_the_owner_vertices,
         test_body_scale_mesh_lifts_the_span_cap,
         test_capsule_radius_keeps_span_cap_on_human_scale,
+        test_capsule_radius_honors_explicit_large_radius,
         test_apply_muscle_skinning_excludes_foot,
         test_side_filter_drops_the_opposite_side,
         test_apply_muscle_skinning_torso_side_filter,
+        test_apply_muscle_skinning_with_scaled_rotated_armature,
         test_validate_deformation_integration,
         test_skinning_message,
         test_operator_properties,

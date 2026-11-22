@@ -108,6 +108,8 @@ def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0):
     length = _distance(head, tail)
     if length <= EPS:
         return radius
+    if radius > DEFAULT_RADIUS:
+        return radius
     capped = min(radius, 0.5 * length)
     if chain_length > EPS:
         capped = min(capped, 0.25 * chain_length)
