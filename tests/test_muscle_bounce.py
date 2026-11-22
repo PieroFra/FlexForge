@@ -20,7 +20,7 @@ def _install_bpy_stub():
     except ImportError:
         pass
 
-    stub_folder = "/home/pierofra/.cache/opencode/tmp"
+    stub_folder = "/tmp/flexforge_test"
     if stub_folder not in sys.path:
         sys.path.insert(0, stub_folder)
     from flexforge_stub import installa_stub_bpy as install_bpy_stub

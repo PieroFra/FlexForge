@@ -17,7 +17,7 @@ FlexForge punta a essere un addon Blender per la costruzione e la deformazione d
 - pannello vuoto "FlexForge" nella Sidebar.
 
 **Esplicitamente escluso dal primo modulo:** sistema muscolare, strumenti Weight Paint.
-**Non fissato:** target engine — resta decisione aperta (la compatibilità Blender è chiusa: **4.2+**, con test su 4.2 e 5.3 **ESEGUITI il 2026-11-21**: `RISULTATO passati=6 falliti=0 totale=6` su entrambi. Il 5.3 è già disponibile al path `/home/pierofra/apps/blender-5.3/blender-5.3.0-linux-x64/`; l'host di sistema resta 5.2.2 LTS invariato).
+**Non fissato:** target engine — resta decisione aperta (la compatibilità Blender è chiusa: **4.2+**, con test su 4.2 e 5.3 **ESEGUITI il 2026-11-21**: `RISULTATO passati=6 falliti=0 totale=6` su entrambi. Il 5.3 è già disponibile al path `<blender_path>/`; l'host di sistema resta 5.2.2 LTS invariato).
 
 ## MVP — resto DA CONCORDARE
 
@@ -41,8 +41,8 @@ Nota: il primo modulo (bootstrap) non dipende da nessuna di queste decisioni e l
 
 ## Sorgente e specchio
 
-- **Sorgente di verità (locale):** `/mnt/windows_c/Users/checc/Desktop/BLENDER ADDONS/FlexForge/`
-- **Specchio (Google Drive):** `/home/pierofra/GoogleDrive/ADDON BLENDER/FlexForge/`
+- **Sorgente di verità (locale):** `<project_root>/`
+- **Specchio (Google Drive):** `<backup_mirror>/`
 - Lo specchio è **solo copia di backup**: non si lavora mai direttamente sul Drive.
 
 ### Regola di sincronizzazione
@@ -50,8 +50,8 @@ Nota: il primo modulo (bootstrap) non dipende da nessuna di queste decisioni e l
 Dopo **ogni avanzamento** (anche un solo documento modificato) si risincronizza la cartella FlexForge sul Drive **senza mai usare `--delete`**, per preservare ogni altro contenuto:
 
 ```bash
-rsync -av "/mnt/windows_c/Users/checc/Desktop/BLENDER ADDONS/FlexForge/" \
-      "/home/pierofra/GoogleDrive/ADDON BLENDER/FlexForge/"
+rsync -av "<project_root>/" \
+      "<backup_mirror>/"
 ```
 
 Il `--delete` è vietato anche per evitare cancellazioni accidentali indotte da file temporanei.

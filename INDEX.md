@@ -107,25 +107,41 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 - `execute`: 186-236
 
 
+# INDEX AST — muscle_anatomy.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 94
+- simboli: 4
+- classi: 0
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+
+## Metodi
+
+
 # INDEX AST — muscle_bake.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 262
-- simboli: 10
+- righe totali: 227
+- simboli: 8
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_bake_shape_keys` | 218-261 | 1 |
+| `FLEXFORGE_OT_bake_shape_keys` | 177-226 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_bake_shape_keys` (218-261)
+### `FLEXFORGE_OT_bake_shape_keys` (177-226)
 
-- `execute`: 232-261
+- `execute`: 194-226
 
 
 # INDEX AST — muscle_bounce.py
@@ -166,6 +182,22 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 ## Metodi
 
 
+# INDEX AST — muscle_drivers.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 66
+- simboli: 2
+- classi: 0
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+
+## Metodi
+
+
 # INDEX AST — muscle_presets.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
@@ -191,15 +223,15 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 173
-- simboli: 13
+- righe totali: 208
+- simboli: 15
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `BakeError` | 16-17 | 0 |
+| `BakeError` | 19-20 | 0 |
 
 ## Metodi
 
