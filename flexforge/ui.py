@@ -115,6 +115,7 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
         box.operator(
             "flexforge.bake_bounce", text="Bake skin bounce", icon="PHYSICS"
         )
+        box.operator("flexforge.clear_muscles", text="Clear muscles", icon="TRASH")
 
         box = layout.box()
         box.label(text="Muscle Bulge Controls", icon="PREFERENCES")

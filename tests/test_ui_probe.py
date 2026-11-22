@@ -22,6 +22,7 @@ OPERATOR_IDS = [
     "flexforge.bind_muscles",
     "flexforge.bake_shape_keys",
     "flexforge.bake_bounce",
+    "flexforge.clear_muscles",
     "flexforge.weight_transfer",
     "flexforge.cleanup_weights",
     "flexforge.mirror_weights",

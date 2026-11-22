@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 75
+- righe totali: 78
 - simboli: 2
 - classi: 0
 
@@ -72,7 +72,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 103
+- righe totali: 104
 - simboli: 3
 - classi: 0
 
@@ -180,6 +180,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 | `SkinningError` | 22-23 | 0 |
 
 ## Metodi
+
+
+# INDEX AST — muscle_clear.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 110
+- simboli: 7
+- classi: 2
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `ClearError` | 13-14 | 0 |
+| `FLEXFORGE_OT_clear_muscles` | 88-109 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_clear_muscles` (88-109)
+
+- `execute`: 96-109
 
 
 # INDEX AST — muscle_drivers.py
@@ -310,7 +332,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 151
+- righe totali: 152
 - simboli: 4
 - classi: 1
 
@@ -318,13 +340,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 42-150 | 1 |
+| `FLEXFORGE_PT_main` | 42-151 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (42-150)
+### `FLEXFORGE_PT_main` (42-151)
 
-- `draw`: 51-150
+- `draw`: 51-151
 
 
 # INDEX AST — verify.py

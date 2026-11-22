@@ -19,7 +19,8 @@ bl_info = {
 # weights_cleanup the weight cleanup operator, weights_mirror the weight
 # mirror operator between sides, muscle_presets the muscle preset operator,
 # muscle_skinning the muscle binding operator, muscle_bake the shape key
-# bake operator and muscle_bounce the skin bounce bake operator.
+# bake operator, muscle_bounce the skin bounce bake operator and muscle_clear
+# the cleanup operator of the muscle data.
 # settings holds the Scene PropertyGroup with the addon options,
 # i18n holds the it_IT translation catalogue (no class registered).
 from . import (
@@ -28,6 +29,7 @@ from . import (
     muscle,
     muscle_bake,
     muscle_bounce,
+    muscle_clear,
     muscle_presets,
     muscle_skinning,
     settings,
@@ -53,6 +55,7 @@ _CLASSES = (
     muscle_skinning.FLEXFORGE_OT_bind_muscles,
     muscle_bake.FLEXFORGE_OT_bake_shape_keys,
     muscle_bounce.FLEXFORGE_OT_bake_bounce,
+    muscle_clear.FLEXFORGE_OT_clear_muscles,
 )
 
 
