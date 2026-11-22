@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 71
+- righe totali: 75
 - simboli: 2
 - classi: 0
 
@@ -72,7 +72,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 98
+- righe totali: 103
 - simboli: 3
 - classi: 0
 
@@ -202,21 +202,21 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 235
-- simboli: 10
+- righe totali: 258
+- simboli: 11
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_create_muscle_preset` | 173-234 | 1 |
+| `FLEXFORGE_OT_create_muscle_preset` | 186-257 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_create_muscle_preset` (173-234)
+### `FLEXFORGE_OT_create_muscle_preset` (186-257)
 
-- `execute`: 189-234
+- `execute`: 202-257
 
 
 # INDEX AST — muscle_shape.py
@@ -273,6 +273,23 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 - `execute`: 144-175
 
 
+# INDEX AST — settings.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 62
+- simboli: 3
+- classi: 1
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `FlexForgeSettings` | 22-49 | 0 |
+
+## Metodi
+
+
 # INDEX AST — spatial_grid.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
@@ -293,7 +310,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 104
+- righe totali: 145
 - simboli: 4
 - classi: 1
 
@@ -301,13 +318,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 41-103 | 1 |
+| `FLEXFORGE_PT_main` | 42-144 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (41-103)
+### `FLEXFORGE_PT_main` (42-144)
 
-- `draw`: 50-103
+- `draw`: 51-144
 
 
 # INDEX AST — verify.py

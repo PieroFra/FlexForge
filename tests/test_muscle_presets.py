@@ -468,6 +468,65 @@ def test_operator_execute():
         _drop_armature(armature)
 
 
+def test_operator_create_muscle_preset_from_active_mesh():
+    import bpy
+
+    from flexforge import muscle_presets
+
+    if _is_fake():
+        # The stub has no real operator stack nor active object handling.
+        return
+
+    both = ("upper_arm.L", "forearm.L", "upper_arm.R", "forearm.R")
+    armature = _make_armature(both)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    mesh_data = bpy.data.meshes.new("FlexForgePresetMesh")
+    mesh = bpy.data.objects.new("FlexForgePresetMesh", mesh_data)
+    bpy.context.scene.collection.objects.link(mesh)
+    modifier = mesh.modifiers.new("Armature", "ARMATURE")
+    modifier.object = armature
+    for other in bpy.context.view_layer.objects:
+        other.select_set(False)
+    mesh.select_set(True)
+    bpy.context.view_layer.objects.active = mesh
+    bpy.utils.register_class(muscle_presets.FLEXFORGE_OT_create_muscle_preset)
+    try:
+        result = bpy.ops.flexforge.create_muscle_preset(
+            preset="custom",
+            custom_name="chest",
+            origin_bone="upper_arm.L",
+            insertion_bone="forearm.L",
+            mirror_lr=True,
+        )
+        assert result == {"FINISHED"}, result
+        # The mesh must never enter Edit Mode: the rig is the edited object.
+        assert mesh.mode == "OBJECT", mesh.mode
+        assert armature.mode == "OBJECT", armature.mode
+        assert bpy.context.view_layer.objects.active == mesh, "active object lost"
+        assert mesh.select_get(), "mesh lost its selection"
+        names = [
+            "muscle_chest_01",
+            "muscle_chest_02",
+            "muscle_chest_r_01",
+            "muscle_chest_r_02",
+        ]
+        for name in names:
+            assert armature.data.bones.get(name) is not None, "missing bone: %s" % name
+            stretch = [
+                constraint
+                for constraint in armature.pose.bones[name].constraints
+                if constraint.type == "STRETCH_TO"
+            ]
+            assert len(stretch) == 1, "missing STRETCH_TO on %s" % name
+    finally:
+        bpy.utils.unregister_class(
+            muscle_presets.FLEXFORGE_OT_create_muscle_preset
+        )
+        bpy.data.objects.remove(mesh, do_unlink=True)
+        bpy.data.meshes.remove(mesh_data)
+        _drop_armature(armature)
+
+
 def _main():
     _install_bpy_stub()
 
@@ -487,6 +546,7 @@ def _main():
         test_pose_constraints,
         test_operator_definition,
         test_operator_execute,
+        test_operator_create_muscle_preset_from_active_mesh,
     ]
 
     passed = 0

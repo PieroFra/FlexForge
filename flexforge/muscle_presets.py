@@ -171,6 +171,18 @@ def _set_mode(armature, mode):
         return error
 
 
+def _select_only(active, selected):
+    """Reselect exactly `selected` and make `active` the active object."""
+    view_layer = bpy.context.view_layer
+    for obj in view_layer.objects:
+        obj.select_set(False)
+    for obj in selected:
+        if obj.name in view_layer.objects:
+            obj.select_set(True)
+    if active is not None:
+        view_layer.objects.active = active
+
+
 class FLEXFORGE_OT_create_muscle_preset(bpy.types.Operator):
     """Create the helper bone chains of a muscle preset on the active armature."""
 
@@ -188,7 +200,9 @@ class FLEXFORGE_OT_create_muscle_preset(bpy.types.Operator):
     bulge: bpy.props.FloatProperty(name="Bulge", default=-1.0, min=-1.0, max=5.0)
 
     def execute(self, context):
-        armature = context.view_layer.objects.active
+        previous_active = context.view_layer.objects.active
+        previous_selected = [obj for obj in context.selected_objects]
+        armature = previous_active
         if armature is not None and getattr(armature, "type", None) == "MESH":
             armature = armature_of_mesh(armature)
         if armature is None or armature.type != "ARMATURE":
@@ -196,8 +210,11 @@ class FLEXFORGE_OT_create_muscle_preset(bpy.types.Operator):
             return {"CANCELLED"}
 
         initial_mode = armature.mode
+        # The rig must be the active object, otherwise `mode_set` edits the mesh.
+        _select_only(armature, [armature])
         error = _set_mode(armature, "EDIT")
         if error is not None:
+            _select_only(previous_active, previous_selected)
             self.report({"ERROR"}, f"Cannot switch to Edit Mode: {error}")
             return {"CANCELLED"}
 
@@ -218,13 +235,16 @@ class FLEXFORGE_OT_create_muscle_preset(bpy.types.Operator):
         finally:
             # `edit_bones` populate `pose.bones` only once Edit Mode is left.
             exit_error = _set_mode(armature, "OBJECT")
+            _select_only(previous_active, previous_selected)
         if created is None:
             return {"CANCELLED"}
         if exit_error is not None:
             self.report({"ERROR"}, f"Cannot return to Object Mode: {exit_error}")
             return {"CANCELLED"}
 
+        _select_only(armature, [armature])
         setup_preset_constraints(armature, created)
+        _select_only(previous_active, previous_selected)
         if initial_mode == "EDIT":
             error = _set_mode(armature, "EDIT")
             if error is not None:
