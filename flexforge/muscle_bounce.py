@@ -5,6 +5,8 @@
 
 import bpy
 
+from .muscle_drivers import scale_prop_name
+
 DEFAULT_STIFFNESS = 0.35
 DEFAULT_DAMPING = 0.28
 DEFAULT_OVERSHOOT = 1.35
@@ -70,15 +72,20 @@ def apply_muscle_bounce(obj, scene, stiffness=DEFAULT_STIFFNESS,
         for key in keys:
             if hasattr(key, "slider_max") and key.slider_max < overshoot_limit:
                 key.slider_max = overshoot_limit
+            samples = []
+            for frame in frames:
+                scene.frame_set(frame)
+                samples.append(float(key.value))
             try:
                 if key.driver_remove("value"):
                     report["drivers_removed"] += 1
             except Exception:
                 pass
-            samples = []
-            for frame in frames:
-                scene.frame_set(frame)
-                samples.append(float(key.value))
+            # The bulge slider anchors the driver removed above: drop it so the
+            # Bulge Controls section falls back to the baked `key.value`.
+            prop_name = scale_prop_name(key.name)
+            if prop_name in obj:
+                del obj[prop_name]
             curve = compute_spring_curve(samples, stiffness, damping, SUBSTEPS,
                                          0.0, overshoot_limit)
             for frame, value in zip(frames, curve):

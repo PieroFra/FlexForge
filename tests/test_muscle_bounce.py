@@ -185,6 +185,8 @@ def test_bake_bounce_removes_existing_driver():
             key.keyframe_insert("value", frame=frame)
         curve = key.driver_add("value")
         assert curve.driver is not None, curve
+        curve.driver.type = "SCRIPTED"
+        curve.driver.expression = "(frame - 1) / 9.0"
         scene.frame_set(1)
         report = muscle_bounce.apply_muscle_bounce(obj, scene)
         assert report == {"keys": 1, "frames": 10, "drivers_removed": 1}, report
@@ -207,6 +209,52 @@ def test_bake_bounce_removes_existing_driver():
         bpy.data.meshes.remove(mesh)
 
 
+def test_bounce_samples_pose_driver_before_removal():
+    scene = bpy.context.scene
+    scene.frame_start = 1
+    scene.frame_end = 10
+    mesh = bpy.data.meshes.new("flexforge_bounce_pose_driver_mesh")
+    mesh.from_pydata([(0.0, 0.0, 0.0), (1.0, 0.0, 0.0)], [], [(0, 1)])
+    obj = bpy.data.objects.new("flexforge_bounce_pose_driver_mesh", mesh)
+    scene.collection.objects.link(obj)
+    obj.shape_key_add(name="Basis", from_mix=False)
+    key = obj.shape_key_add(name="flexforge_biceps", from_mix=False)
+
+    try:
+        # Only a driver animates the key: it ramps up to 1.0 on frame 10.
+        curve = key.driver_add("value")
+        assert curve.driver is not None, curve
+        variable = curve.driver.variables.new()
+        variable.name = "f"
+        variable.type = "SINGLE_PROP"
+        variable.targets[0].id_type = "SCENE"
+        variable.targets[0].id = scene
+        variable.targets[0].data_path = "frame_current"
+        curve.driver.expression = "f / 10.0"
+        # The orphan bulge slider left by the driver setup must go with it.
+        obj["flexforge_biceps_scale"] = 1.0
+        scene.frame_set(1)
+        report = muscle_bounce.apply_muscle_bounce(obj, scene)
+        assert report == {"keys": 1, "frames": 10, "drivers_removed": 1}, report
+        assert "flexforge_biceps_scale" not in obj, list(obj.keys())
+        animation_data = key.id_data.animation_data
+        assert animation_data is not None, "the baked keyframes must stay"
+        assert len(animation_data.drivers) == 0, [
+            driver.data_path for driver in animation_data.drivers]
+        # The driver was sampled first, so the baked curve is not flat at 0.0.
+        curve_values = []
+        for frame in range(1, 11):
+            scene.frame_set(frame)
+            curve_values.append(float(key.value))
+        assert max(curve_values) > 0.1, curve_values
+        assert scene.frame_current == 10, scene.frame_current
+    finally:
+        scene.frame_start = 1
+        scene.frame_end = 250
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+
+
 def _main():
     tests = [
         test_constants_and_empty,
@@ -216,6 +264,7 @@ def _main():
         test_find_flexforge_keys,
         test_bake_real_blender,
         test_bake_bounce_removes_existing_driver,
+        test_bounce_samples_pose_driver_before_removal,
     ]
 
     passed = 0
