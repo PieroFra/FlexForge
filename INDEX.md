@@ -127,7 +127,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 235
+- righe totali: 243
 - simboli: 8
 - classi: 1
 
@@ -135,13 +135,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_bake_shape_keys` | 185-234 | 1 |
+| `FLEXFORGE_OT_bake_shape_keys` | 193-242 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_bake_shape_keys` (185-234)
+### `FLEXFORGE_OT_bake_shape_keys` (193-242)
 
-- `execute`: 202-234
+- `execute`: 210-242
 
 
 # INDEX AST — muscle_bounce.py

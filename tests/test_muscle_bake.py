@@ -967,6 +967,87 @@ def test_apply_muscle_bake_with_scaled_rotated_armature():
         bpy.data.armatures.remove(armature_data)
 
 
+def _shape_key_driver_paths(obj):
+    """Data paths of the drivers stored on the mesh shape keys."""
+    animation = getattr(getattr(obj.data, "shape_keys", None), "animation_data",
+                        None)
+    if animation is None:
+        return set()
+    return {fcurve.data_path for fcurve in animation.drivers}
+
+
+def test_rebake_replaces_existing_key_and_clears_old_driver():
+    """A second bake reuses the key name and drops the stale pose driver."""
+    armature_data = bpy.data.armatures.new("flexforge_rebake_arm")
+    armature = bpy.data.objects.new("flexforge_rebake_arm", armature_data)
+    bpy.context.scene.collection.objects.link(armature)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    origin_bone = armature_data.edit_bones.new("upper_arm.L")
+    origin_bone.head = (0.0, 0.0, 0.0)
+    origin_bone.tail = (0.0, 1.0, 0.0)
+    insertion_bone = armature_data.edit_bones.new("forearm.L")
+    insertion_bone.head = (0.0, 1.0, 0.0)
+    insertion_bone.tail = (0.0, 2.0, 0.0)
+    insertion_bone.parent = origin_bone
+    muscle_bone = armature_data.edit_bones.new("muscle_biceps_01")
+    muscle_bone.head = (0.0, 0.0, 0.0)
+    muscle_bone.tail = (0.0, 1.0, 0.0)
+    muscle_bone.parent = origin_bone
+    # Wide envelope: the 0.3 * 0.4 cap sits above both bake displacements.
+    for bone in (origin_bone, insertion_bone, muscle_bone):
+        bone.head_radius = 0.4
+        bone.tail_radius = 0.4
+    bpy.ops.object.mode_set(mode="OBJECT")
+    constraint = armature.pose.bones["muscle_biceps_01"].constraints.new(
+        type="STRETCH_TO"
+    )
+    constraint.subtarget = "forearm.L"
+
+    mesh = bpy.data.meshes.new("flexforge_rebake_mesh")
+    mesh.from_pydata([(0.1, 0.5, 0.0), (0.0, 0.25, 0.0)], [], [(0, 1)])
+    obj = bpy.data.objects.new("flexforge_rebake_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    parent_group = obj.vertex_groups.new(name="upper_arm.L")
+    muscle_group = obj.vertex_groups.new(name="muscle_biceps_01")
+    parent_group.add([0], 0.5, "REPLACE")
+    muscle_group.add([0], 0.5, "REPLACE")
+    muscle_group.add([1], 1.0, "REPLACE")
+    modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+    modifier.object = armature
+
+    try:
+        first = muscle_bake.apply_muscle_bake(
+            obj, armature, displacement=0.05, strip_muscle_weights=False,
+            drive_by_pose=True,
+        )
+        assert first["drivers_added"] == 1, first
+        paths = _shape_key_driver_paths(obj)
+        assert 'key_blocks["flexforge_biceps"].value' in paths, paths
+
+        second = muscle_bake.apply_muscle_bake(
+            obj, armature, displacement=0.08, strip_muscle_weights=False,
+            drive_by_pose=False,
+        )
+        assert second["shape_keys"] == 1, second
+        assert second["drivers_added"] == 0, second
+
+        names = [key.name for key in obj.data.shape_keys.key_blocks]
+        assert names == ["Basis", "flexforge_biceps"], names
+        assert not any(name.startswith("flexforge_biceps.") for name in names), names
+        # The old pose driver is gone, not left on the replaced key.
+        assert _shape_key_driver_paths(obj) == set(), _shape_key_driver_paths(obj)
+        # The rebuilt key carries the new displacement: 0.1 + 0.08 on X.
+        key = obj.data.shape_keys.key_blocks["flexforge_biceps"]
+        assert abs(key.data[0].co[0] - 0.18) < 1e-5, tuple(key.data[0].co)
+    finally:
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.objects.remove(armature, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.armatures.remove(armature_data)
+
+
 def _rotate_z_quaternion():
     """Quaternion of a 90 degree turn about Z: its angle is pi / 2."""
     half = math.sqrt(0.5)
@@ -1281,6 +1362,7 @@ def _main():
         test_operator_execute_finished,
         test_apply_real_blender,
         test_apply_muscle_bake_with_scaled_rotated_armature,
+        test_rebake_replaces_existing_key_and_clears_old_driver,
         test_attach_pose_drivers_creates_rotation_diff,
         test_attach_pose_drivers_ignores_missing_targets,
         test_attach_pose_drivers_rejects_non_positive_max_angle,

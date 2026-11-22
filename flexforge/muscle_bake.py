@@ -155,6 +155,14 @@ def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
     displaced = set()
     created = []
     for key_name in sorted(shapes):
+        key_blocks = getattr(getattr(obj.data, "shape_keys", None), "key_blocks", None)
+        if key_blocks and key_name in key_blocks:
+            existing = key_blocks[key_name]
+            try:
+                existing.driver_remove("value")
+            except Exception:
+                pass
+            obj.shape_key_remove(existing)
         key = obj.shape_key_add(name=key_name, from_mix=False)
         created.append(key)
         for vertex, delta in shapes[key_name].items():
