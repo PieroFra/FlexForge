@@ -40,6 +40,8 @@ _OPERATOR_LABELS = {
 # Property names shown in the operator panels and in the redo panel.
 _PROPERTY_NAMES = {
     "Preset": "Preset",
+    "All available": "Tutti disponibili",
+    "Custom": "Personalizzato",
     "Custom name": "Nome personalizzato",
     "Origin bone": "Osso di origine",
     "Insertion bone": "Osso di inserzione",
@@ -53,6 +55,9 @@ _PROPERTY_NAMES = {
     "Max displacement ratio": "Rapporto spostamento massimo",
     "Strip muscle weights": "Rimuovi pesi muscolo",
     "Drive by pose": "Guida dalla posa",
+    "Anatomical taper": "Rastrematura anatomica",
+    "Directional bias": "Inclinazione direzionale",
+    "Smooth": "Levigatura",
     "Stiffness": "Rigidità",
     "Damping": "Smorzamento",
     "Overshoot limit": "Limite di superamento",

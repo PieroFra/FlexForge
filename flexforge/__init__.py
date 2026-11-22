@@ -5,7 +5,7 @@
 bl_info = {
     "name": "FlexForge",
     "author": "FlexForge",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > FlexForge",
     "description": "Muscles with helper bones, weights toolkit (transfer, cleanup, mirror) and glTF export for Godot and Unity.",
@@ -20,6 +20,7 @@ bl_info = {
 # mirror operator between sides, muscle_presets the muscle preset operator,
 # muscle_skinning the muscle binding operator, muscle_bake the shape key
 # bake operator and muscle_bounce the skin bounce bake operator.
+# settings holds the Scene PropertyGroup with the addon options,
 # i18n holds the it_IT translation catalogue (no class registered).
 from . import (
     export_gltf,
@@ -29,6 +30,7 @@ from . import (
     muscle_bounce,
     muscle_presets,
     muscle_skinning,
+    settings,
     ui,
     verify,
     weight_transfer,
@@ -57,6 +59,7 @@ _CLASSES = (
 def register():
     """Register all addon classes, in the declared order."""
     import bpy
+    settings.register_settings()
     for cls in _CLASSES:
         bpy.utils.register_class(cls)
     i18n.register_translations()
@@ -68,3 +71,4 @@ def unregister():
     i18n.unregister_translations()
     for cls in reversed(_CLASSES):
         bpy.utils.unregister_class(cls)
+    settings.unregister_settings()

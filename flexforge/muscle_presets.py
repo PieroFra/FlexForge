@@ -4,6 +4,7 @@
 
 import bpy
 
+from .armatura import armature_of_mesh
 from .muscle import (
     DEFAULT_BULGE,
     DEFAULT_SEGMENTS,
@@ -188,6 +189,8 @@ class FLEXFORGE_OT_create_muscle_preset(bpy.types.Operator):
 
     def execute(self, context):
         armature = context.view_layer.objects.active
+        if armature is not None and getattr(armature, "type", None) == "MESH":
+            armature = armature_of_mesh(armature)
         if armature is None or armature.type != "ARMATURE":
             self.report({"ERROR"}, "Select the rig: an active armature is required.")
             return {"CANCELLED"}

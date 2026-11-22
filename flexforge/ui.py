@@ -4,6 +4,7 @@
 
 import bpy
 
+from .armatura import armature_of_mesh
 from .muscle_bounce import find_flexforge_keys
 
 
@@ -50,6 +51,11 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = getattr(context, "active_object", None) if context is not None else None
+        kind = getattr(obj, "type", None)
+        armature = obj if kind == "ARMATURE" else None
+        if armature is None and kind == "MESH":
+            armature = armature_of_mesh(obj)
+        settings = getattr(getattr(context, "scene", None), "flexforge_settings", None)
         layout.label(text="FlexForge - muscles and weights")
 
         header = layout.box()
@@ -58,13 +64,48 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
 
         box = layout.box()
         box.label(text="Muscle Workflow", icon="ARMATURE_DATA")
-        box.operator(
+        custom = False
+        if settings is not None:
+            box.prop(settings, "preset")
+            box.prop(settings, "mirror_lr")
+            custom = getattr(settings, "preset", None) == "custom"
+            if custom:
+                box.prop(settings, "custom_name")
+                rig_data = getattr(armature, "data", None)
+                if rig_data is not None:
+                    box.prop_search(settings, "origin_bone", rig_data, "bones")
+                    box.prop_search(settings, "insertion_bone", rig_data, "bones")
+                else:
+                    box.prop(settings, "origin_bone")
+                    box.prop(settings, "insertion_bone")
+                box.prop(settings, "segments")
+        op = box.operator(
             "flexforge.create_muscle_preset", text="Create muscle preset", icon="ADD"
         )
+        if settings is not None:
+            op.preset = settings.preset
+            op.mirror_lr = settings.mirror_lr
+            if custom:
+                op.custom_name = settings.custom_name
+                op.origin_bone = settings.origin_bone
+                op.insertion_bone = settings.insertion_bone
+                op.segments = settings.segments
         box.operator("flexforge.bind_muscles", text="Bind muscles", icon="MOD_SKIN")
-        box.operator(
+        if settings is not None:
+            box.prop(settings, "displacement")
+            box.prop(settings, "anatomical_taper")
+            box.prop(settings, "directional_bias")
+            box.prop(settings, "smooth_iterations")
+            box.prop(settings, "drive_by_pose")
+        op_bake = box.operator(
             "flexforge.bake_shape_keys", text="Bake shape keys", icon="SHAPEKEY_DATA"
         )
+        if settings is not None:
+            op_bake.displacement = settings.displacement
+            op_bake.anatomical_taper = settings.anatomical_taper
+            op_bake.directional_bias = settings.directional_bias
+            op_bake.smooth_iterations = settings.smooth_iterations
+            op_bake.drive_by_pose = settings.drive_by_pose
         box.operator(
             "flexforge.bake_bounce", text="Bake skin bounce", icon="PHYSICS"
         )

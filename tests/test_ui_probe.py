@@ -6,6 +6,7 @@
 import sys
 import traceback
 from pathlib import Path
+from types import SimpleNamespace
 
 BASE = Path(__file__).resolve().parent.parent
 if str(BASE) not in sys.path:
@@ -75,13 +76,15 @@ def test_panel_draws_all_buttons():
 
         def operator(self, operator_id, text, icon="NONE"):
             drawn.append(("operator", operator_id))
+            return SimpleNamespace()
 
         def prop(self, data, attr, text=None, **kwargs):
             drawn.append(("prop", text))
 
-    import types
+        def prop_search(self, data, attr, search_data, search_prop, text=None, **kwargs):
+            drawn.append(("prop_search", attr))
 
-    panel = types.SimpleNamespace(layout=_FakeLayout())
+    panel = SimpleNamespace(layout=_FakeLayout())
     ui.FLEXFORGE_PT_main.draw(panel, None)
     operators = [value for kind, value in drawn if kind == "operator"]
     assert operators == OPERATOR_IDS, operators
@@ -169,6 +172,92 @@ def test_muscle_status_summary():
         bpy.data.meshes.remove(mesh_data)
 
 
+def test_settings_registered_on_scene():
+    _register()
+    assert hasattr(bpy.types.Scene, "flexforge_settings")
+    settings = bpy.context.scene.flexforge_settings
+    assert settings is not None
+    assert settings.preset == "all_available", settings.preset
+    assert settings.mirror_lr is True
+    assert settings.segments == 2, settings.segments
+
+
+def test_panel_draws_custom_bone_fields():
+    _register()
+    drawn = []
+    ops = []
+
+    class _FakeLayout:
+        def box(self):
+            return self
+
+        def row(self):
+            return self
+
+        def separator(self):
+            pass
+
+        def label(self, text, icon="NONE"):
+            pass
+
+        def operator(self, operator_id, text, icon="NONE"):
+            namespace = SimpleNamespace()
+            ops.append((operator_id, namespace))
+            return namespace
+
+        def prop(self, data, attr, text=None, **kwargs):
+            drawn.append(("prop", attr))
+
+        def prop_search(self, data, attr, search_data, search_prop, text=None, **kwargs):
+            drawn.append(("prop_search", attr))
+
+    rig_data = bpy.data.armatures.new("FFCustomRig")
+    rig = bpy.data.objects.new("FFCustomRig", rig_data)
+    bpy.context.scene.collection.objects.link(rig)
+    settings = bpy.context.scene.flexforge_settings
+    previous = (settings.preset, settings.origin_bone, settings.insertion_bone)
+    try:
+        for other in bpy.context.view_layer.objects:
+            other.select_set(False)
+        bpy.context.view_layer.objects.active = rig
+        rig.select_set(True)
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.object.mode_set(mode="EDIT")
+        bone = rig_data.edit_bones.new("upper_arm.L")
+        bone.head = (0.0, 0.0, 0.0)
+        bone.tail = (0.0, 0.0, 1.0)
+        bone = rig_data.edit_bones.new("forearm.L")
+        bone.head = (0.0, 0.0, 1.0)
+        bone.tail = (0.0, 0.0, 2.0)
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+        settings.preset = "custom"
+        settings.origin_bone = "upper_arm.L"
+        settings.insertion_bone = "forearm.L"
+        context = SimpleNamespace(active_object=rig, scene=bpy.context.scene)
+        panel = SimpleNamespace(layout=_FakeLayout())
+        ui.FLEXFORGE_PT_main.draw(panel, context)
+
+        assert ("prop_search", "origin_bone") in drawn, drawn
+        assert ("prop_search", "insertion_bone") in drawn, drawn
+        created = [
+            namespace
+            for operator_id, namespace in ops
+            if operator_id == "flexforge.create_muscle_preset"
+        ]
+        assert len(created) == 1, ops
+        assert created[0].preset == "custom"
+        assert created[0].origin_bone == "upper_arm.L"
+        assert created[0].insertion_bone == "forearm.L"
+    finally:
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        settings.preset, settings.origin_bone, settings.insertion_bone = previous
+        bpy.data.objects.remove(rig, do_unlink=True)
+        bpy.data.armatures.remove(rig_data)
+
+
 def _main():
     tests = [
         test_panel_registered,
@@ -176,6 +265,8 @@ def _main():
         test_panel_draws_all_buttons,
         test_context_summary,
         test_muscle_status_summary,
+        test_settings_registered_on_scene,
+        test_panel_draws_custom_bone_fields,
     ]
     passed = failed = 0
     for case in tests:
