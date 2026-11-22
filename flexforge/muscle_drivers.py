@@ -8,6 +8,13 @@ from .muscle_shape import SHAPE_KEY_PREFIX, BakeError, shape_key_name_for_bone
 
 STRETCH_TO_CONSTRAINT = "STRETCH_TO"
 DEFAULT_MAX_ANGLE_RAD = 1.5708
+DEFAULT_BULGE_SCALE = 1.0
+MAX_BULGE_SCALE = 3.0
+
+
+def scale_prop_name(key_name):
+    """Custom property on the mesh object holding the bulge scale of a key."""
+    return "%s_scale" % key_name
 
 def _driver_bone_pair(armature, bones, key_name):
     """(origin, insertion) bone names driving a shape key, or (None, None)."""
@@ -38,8 +45,8 @@ def attach_pose_drivers(obj, armature, max_angle_rad=DEFAULT_MAX_ANGLE_RAD):
         raise BakeError("max_angle_rad must be positive.")
     bones = getattr(getattr(armature, "data", None), "bones", None) or []
     by_name = {getattr(bone, "name", ""): bone for bone in bones}
-    key_blocks = getattr(getattr(getattr(obj, "data", None), "shape_keys", None),
-                         "key_blocks", None) or []
+    shape_keys = getattr(getattr(obj, "data", None), "shape_keys", None)
+    key_blocks = getattr(shape_keys, "key_blocks", None) or []
     created = 0
     for key_block in key_blocks:
         key_name = getattr(key_block, "name", "")
@@ -49,6 +56,17 @@ def attach_pose_drivers(obj, armature, max_angle_rad=DEFAULT_MAX_ANGLE_RAD):
         if origin not in by_name or insertion not in by_name:
             continue
         rest_angle = by_name[origin].matrix_local.to_quaternion().rotation_difference(by_name[insertion].matrix_local.to_quaternion()).angle
+        # The slider ceiling must leave room for the user-editable scale. Shape
+        # keys cannot hold ID properties, so the scale lives on the mesh object.
+        key_block.slider_max = max(float(getattr(key_block, "slider_max", 1.0)),
+                                   MAX_BULGE_SCALE)
+        prop_name = scale_prop_name(key_name)
+        obj[prop_name] = float(obj.get(prop_name, DEFAULT_BULGE_SCALE))
+        try:
+            obj.id_properties_ui(prop_name).update(
+                min=0.0, max=MAX_BULGE_SCALE, soft_min=0.0, soft_max=2.0)
+        except AttributeError:
+            pass
         key_block.driver_remove("value")
         driver = key_block.driver_add("value").driver
         driver.type = "SCRIPTED"
@@ -59,7 +77,13 @@ def attach_pose_drivers(obj, armature, max_angle_rad=DEFAULT_MAX_ANGLE_RAD):
         variable.targets[0].bone_target = origin
         variable.targets[1].id = armature
         variable.targets[1].bone_target = insertion
-        driver.expression = ("min(1.0, max(0.0, abs(ang - %.6f) / %.6f))"
+        scale_var = driver.variables.new()
+        scale_var.name = "scale"
+        scale_var.type = "SINGLE_PROP"
+        scale_var.targets[0].id_type = "OBJECT"
+        scale_var.targets[0].id = obj
+        scale_var.targets[0].data_path = '["%s"]' % prop_name
+        driver.expression = ("min(1.0, max(0.0, abs(ang - %.6f) / %.6f)) * scale"
                              % (rest_angle, max_angle_rad))
         created += 1
     return created

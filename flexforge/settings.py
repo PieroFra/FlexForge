@@ -46,7 +46,7 @@ class FlexForgeSettings(bpy.types.PropertyGroup):
     smooth_iterations: bpy.props.IntProperty(
         name="Smooth", description="Laplacian smoothing iterations", default=2, min=0, max=5)
     drive_by_pose: bpy.props.BoolProperty(
-        name="Drive by pose", description="Drive contraction from the pose", default=False)
+        name="Drive by pose", description="Drive contraction from the pose", default=True)
     bind_radius: bpy.props.FloatProperty(
         name="Bind radius", description="Capsule radius for Bind muscles",
         default=0.15, min=0.01, max=1.0)

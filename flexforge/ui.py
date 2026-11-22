@@ -6,6 +6,7 @@ import bpy
 
 from .armatura import armature_of_mesh
 from .muscle_bounce import find_flexforge_keys
+from .muscle_drivers import scale_prop_name
 
 
 def context_summary(context):
@@ -124,7 +125,12 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
             keys = find_flexforge_keys(obj)
         if keys:
             for kb in keys:
-                box.prop(kb, "value", text=kb.name[len("flexforge_"):])
+                prop_name = scale_prop_name(kb.name)
+                if obj is not None and prop_name in obj:
+                    box.prop(obj, '["%s"]' % prop_name,
+                             text=kb.name[len("flexforge_"):])
+                else:
+                    box.prop(kb, "value", text=kb.name[len("flexforge_"):])
         else:
             box.label(text="No baked muscles on active mesh")
 
