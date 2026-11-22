@@ -8,15 +8,14 @@ import bpy
 
 from .armatura import armature_of_mesh
 from .muscle import MUSCLE_PREFIX
-from .muscle_shape import (BakeError, DEFAULT_BONE_RADIUS,
-                           DEFAULT_DISPLACEMENT, MAX_DISPLACEMENT_RATIO,
-                           SHAPE_KEY_PREFIX, bone_radius,
+from .muscle_anatomy import smooth_shape_deltas
+from .muscle_drivers import (attach_pose_drivers, DEFAULT_MAX_ANGLE_RAD, STRETCH_TO_CONSTRAINT, _driver_bone_pair)
+from .muscle_shape import (BakeError, DEFAULT_BONE_RADIUS, DEFAULT_DISPLACEMENT,
+                           MAX_DISPLACEMENT_RATIO, SHAPE_KEY_PREFIX, bone_radius,
                            compute_muscle_shape_deltas, shape_key_name_for_bone)
-from .weights import (EPS, MAX_INFLUENCES_DEFAULT, limit_influences,
-                      read_weights, write_weights)
+from .weights import (EPS, MAX_INFLUENCES_DEFAULT, limit_influences, read_weights, write_weights)
 
 BASIS_KEY_NAME = "Basis"
-STRETCH_TO_CONSTRAINT = "STRETCH_TO"
 
 def _non_muscle_ancestor(name, bone_parents):
     """First non-`muscle_*` parent of a helper bone, or None."""
@@ -68,8 +67,8 @@ def _muscle_segments_of_armature(armature):
             raise BakeError("Bone '%s' has no rest head/tail." % name)
         segments[name] = (tuple(head), tuple(tail))
         # A tiny FBX envelope (e.g. 1 mm after transform_apply) would squash the
-        # bulge cap to nothing: under the default radius the segment length is a
-        # firmer floor, while standard bones keep their own envelope untouched.
+        # bulge cap to nothing: under the default radius the segment length is
+        # a firmer floor, standard bones keep their own envelope untouched.
         radius = bone_radius(bone)
         if radius < DEFAULT_BONE_RADIUS:
             span = sum((tuple(tail)[i] - tuple(head)[i]) ** 2
@@ -81,8 +80,7 @@ def _muscle_segments_of_armature(armature):
 def apply_one_hot_values(created_keys):
     """Zero every baked key but the active one: one muscle at a time.
 
-    Blender makes the last added key active, so it gets value 1.0 while the
-    other muscles stay at 0.0 instead of stacking on the surface.
+    Blender makes the last key active: it gets 1.0, the others stay at 0.0.
     """
     if not created_keys:
         return 0
@@ -91,66 +89,14 @@ def apply_one_hot_values(created_keys):
     created_keys[-1].value = 1.0
     return len(created_keys)
 
-def _driver_bone_pair(armature, bones, key_name):
-    """(origin, insertion) bone names driving a shape key, or (None, None)."""
-    pose_bones = getattr(getattr(armature, "pose", None), "bones", None) or []
-    for bone in bones:
-        bone_name = getattr(bone, "name", "")
-        origin = getattr(getattr(bone, "parent", None), "name", None)
-        if (not origin or not str(bone_name).startswith(MUSCLE_PREFIX)
-                or shape_key_name_for_bone(bone_name) != key_name):
-            continue
-        for pose_bone in pose_bones:
-            if getattr(pose_bone, "name", None) != bone_name:
-                continue
-            for constraint in getattr(pose_bone, "constraints", None) or []:
-                insertion = getattr(constraint, "subtarget", "")
-                if (getattr(constraint, "type", None) == STRETCH_TO_CONSTRAINT
-                        and insertion != origin):
-                    return origin, insertion
-    return None, None
-
-def attach_pose_drivers(obj, armature, max_angle_rad=1.5708):
-    """Drive each `flexforge_*` key from the angle of its muscle bone.
-
-    Needs a parent (`origin`) and a `STRETCH_TO` subtarget (`insertion`).
-    `max_angle_rad` is the angle that saturates the driver and must be positive.
-    """
-    if max_angle_rad <= 0.0:
-        raise BakeError("max_angle_rad must be positive.")
-    bones = getattr(getattr(armature, "data", None), "bones", None) or []
-    by_name = {getattr(bone, "name", ""): bone for bone in bones}
-    key_blocks = getattr(getattr(getattr(obj, "data", None), "shape_keys", None),
-                         "key_blocks", None) or []
-    created = 0
-    for key_block in key_blocks:
-        key_name = getattr(key_block, "name", "")
-        if not str(key_name).startswith(SHAPE_KEY_PREFIX):
-            continue
-        origin, insertion = _driver_bone_pair(armature, bones, key_name)
-        if origin not in by_name or insertion not in by_name:
-            continue
-        rest_angle = by_name[origin].matrix_local.to_quaternion().rotation_difference(by_name[insertion].matrix_local.to_quaternion()).angle
-        key_block.driver_remove("value")
-        driver = key_block.driver_add("value").driver
-        driver.type = "SCRIPTED"
-        variable = driver.variables.new()
-        variable.name = "ang"
-        variable.type = "ROTATION_DIFF"
-        variable.targets[0].id = armature
-        variable.targets[0].bone_target = origin
-        variable.targets[1].id = armature
-        variable.targets[1].bone_target = insertion
-        driver.expression = ("min(1.0, max(0.0, abs(ang - %.6f) / %.6f))"
-                             % (rest_angle, max_angle_rad))
-        created += 1
-    return created
-
 def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
                       strip_muscle_weights=True,
                       max_influences=MAX_INFLUENCES_DEFAULT,
                       max_displacement_ratio=MAX_DISPLACEMENT_RATIO,
-                      drive_by_pose=False):
+                      drive_by_pose=False,
+                      anatomical_taper=False,
+                      directional_bias=False,
+                      smooth_iterations=0):
     """Create `Basis` + one corrective key per muscle on the active mesh.
 
     The segments of a muscle share its key, which is one-hot: 1.0 on the last
@@ -158,6 +104,11 @@ def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
     weights go on the parent bone and the `muscle_*` groups are removed.
     `max_displacement_ratio` is the share of the bone envelope the push may
     reach. With `drive_by_pose` every corrective key also gets a pose driver.
+    With `anatomical_taper` the push follows a fusiform curve, zero at the
+    tendons and one at the belly of the muscle. With `directional_bias` the push
+    follows the anatomical side of the muscle family, and with
+    `smooth_iterations` above zero the deltas are Laplacian-smoothed over the
+    mesh edges before the keys are created.
     Return {shape_keys, vertices_displaced, stripped_muscles, drivers_added}.
     """
     if getattr(obj, "type", None) != "MESH":
@@ -174,7 +125,9 @@ def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
                    for vertex in obj.data.vertices}
     deltas = compute_muscle_shape_deltas(coordinates, weights, segments,
                                          displacement, radii,
-                                         max_displacement_ratio)
+                                         max_displacement_ratio,
+                                         anatomical_taper=anatomical_taper,
+                                         directional_bias=directional_bias)
     shape_keys = getattr(obj.data, "shape_keys", None)
     if shape_keys is None or BASIS_KEY_NAME not in getattr(
             shape_keys, "key_blocks", {}):
@@ -185,6 +138,12 @@ def apply_muscle_bake(obj, armature=None, displacement=DEFAULT_DISPLACEMENT,
         for vertex, delta in deltas[bone_name].items():
             accumulated = bucket.get(vertex, (0.0, 0.0, 0.0))
             bucket[vertex] = tuple(accumulated[i] + delta[i] for i in range(3))
+    if smooth_iterations > 0:
+        edges = [(edge.vertices[0], edge.vertices[1])
+                 for edge in getattr(obj.data, "edges", [])]
+        for key_name in shapes:
+            shapes[key_name] = smooth_shape_deltas(shapes[key_name], edges,
+                                                   iterations=smooth_iterations)
     displaced = set()
     created = []
     for key_name in sorted(shapes):
@@ -228,6 +187,9 @@ class FLEXFORGE_OT_bake_shape_keys(bpy.types.Operator):
     max_influences: bpy.props.IntProperty(name="Max influences", default=MAX_INFLUENCES_DEFAULT, min=1, max=8)
     max_displacement_ratio: bpy.props.FloatProperty(name="Max displacement ratio", default=MAX_DISPLACEMENT_RATIO, min=0.01, max=1.0)
     drive_by_pose: bpy.props.BoolProperty(name="Drive by pose", default=False)
+    anatomical_taper: bpy.props.BoolProperty(name="Anatomical taper", default=False)
+    directional_bias: bpy.props.BoolProperty(name="Directional bias", default=False)
+    smooth_iterations: bpy.props.IntProperty(name="Smooth iterations", default=0, min=0, max=5)
 
     def execute(self, context):
         obj = context.view_layer.objects.active
@@ -251,7 +213,10 @@ class FLEXFORGE_OT_bake_shape_keys(bpy.types.Operator):
                                        strip_muscle_weights=strip,
                                        max_influences=max_influences,
                                        max_displacement_ratio=max_displacement_ratio,
-                                       drive_by_pose=bool(getattr(self, "drive_by_pose", False)))
+                                       drive_by_pose=bool(getattr(self, "drive_by_pose", False)),
+                                       anatomical_taper=bool(getattr(self, "anatomical_taper", False)),
+                                       directional_bias=bool(getattr(self, "directional_bias", False)),
+                                       smooth_iterations=int(getattr(self, "smooth_iterations", 0)))
         except BakeError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}

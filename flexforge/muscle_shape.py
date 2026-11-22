@@ -2,7 +2,10 @@
 # Coordinates and weight dicts in, {bone: {vertex: delta}} out: no bpy, so the
 # bake module and the tests share the same numbers. Blender 4.2 and 5.3 free.
 
+import math
+
 from .muscle import MUSCLE_PREFIX
+from .muscle_anatomy import directional_factor
 from .weights import EPS
 
 SHAPE_KEY_PREFIX = "flexforge_"
@@ -88,6 +91,27 @@ def _segment_geometry(muscle_segments, radii):
                                _fallback_direction(axis))
     return geometry
 
+def _chain_endpoints(bones, geometry):
+    """Chain head, axis and squared length of one muscle, segment by segment.
+
+    The `muscle_biceps_01/02/...` segments are sorted: the chain runs from the
+    head of the first to the tail (`head + axis`) of the last, so a taper is
+    measured along the whole muscle and not along a single segment.
+    """
+    ordered = sorted(bones)
+    chain_head = geometry[ordered[0]][0]
+    last_head, last_axis = geometry[ordered[-1]][0], geometry[ordered[-1]][1]
+    last_tail = tuple(last_head[i] + last_axis[i] for i in range(3))
+    chain_axis = _subtract(last_tail, chain_head)
+    return chain_head, chain_axis, _dot(chain_axis, chain_axis)
+
+def _anatomical_taper(point, chain_head, chain_axis, chain_sq):
+    """Fusiform envelope of a muscle: 0 at both joints, 1 in its belly."""
+    if chain_sq is None or chain_sq <= GEOMETRY_EPS ** 2:
+        return 1.0
+    factor = _dot(_subtract(point, chain_head), chain_axis) / chain_sq
+    return math.sin(math.pi * min(1.0, max(0.0, factor)))
+
 def _blended_sample(point, bone_weights, geometry):
     """Direction, weight sum and blended radius seen by one vertex.
 
@@ -124,7 +148,9 @@ def _blended_sample(point, bone_weights, geometry):
 def compute_muscle_shape_deltas(vertex_coordinates, weights, muscle_segments,
                                 displacement=DEFAULT_DISPLACEMENT,
                                 bone_radii=None,
-                                max_displacement_ratio=MAX_DISPLACEMENT_RATIO):
+                                max_displacement_ratio=MAX_DISPLACEMENT_RATIO,
+                                anatomical_taper=False,
+                                directional_bias=False):
     """Radial delta out of each `head->tail` segment, scaled by weight.
 
     The displacement of a muscle is split over its segments and capped at
@@ -132,8 +158,11 @@ def compute_muscle_shape_deltas(vertex_coordinates, weights, muscle_segments,
     segments cannot spike the surface; a vertex weighted on several segments
     gets one cross-faded direction instead of a per-segment step. The weights
     are renormalized to the heaviest segment seen by the vertex, so the peak of
-    a bucket reaches the cap instead of a fraction of it. Return
-    {bone: {vertex: (dx, dy, dz)}}.
+    a bucket reaches the cap instead of a fraction of it. With
+    `anatomical_taper` the amplitude is scaled by a fusiform curve along the
+    whole muscle chain: zero at the tendons, one at the belly. With
+    `directional_bias` the amplitude of each segment also follows the anatomical
+    direction of its muscle family. Return {bone: {vertex: (dx, dy, dz)}}.
     """
     if displacement is None or displacement <= 0.0:
         raise BakeError("The displacement must be greater than 0.")
@@ -147,6 +176,7 @@ def compute_muscle_shape_deltas(vertex_coordinates, weights, muscle_segments,
     deltas = {}
     for bones in groups.values():
         share = displacement / len(bones)
+        chain = _chain_endpoints(bones, geometry) if anatomical_taper else None
         for vertex, vertex_weights in weights.items():
             bone_weights = {
                 bone_name: vertex_weights.get(bone_name, 0.0)
@@ -165,8 +195,13 @@ def compute_muscle_shape_deltas(vertex_coordinates, weights, muscle_segments,
                 continue
             direction, _total, radius, samples = sample
             amplitude = min(share, max_displacement_ratio * radius)
+            if chain is not None:
+                amplitude *= _anatomical_taper(point, chain[0], chain[1],
+                                               chain[2])
             for bone_name, weight, _own in samples:
                 scale = (weight / peak) * amplitude
+                if directional_bias:
+                    scale *= directional_factor(bone_name, direction)
                 deltas.setdefault(bone_name, {})[vertex] = tuple(
                     component * scale for component in direction)
     return deltas

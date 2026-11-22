@@ -1042,6 +1042,154 @@ def test_attach_pose_drivers_rejects_non_positive_max_angle():
     assert muscle_bake.attach_pose_drivers(obj, good, max_angle_rad=0.5) == 1
 
 
+def test_anatomical_taper_zero_at_joints_peak_at_center():
+    segments = {"muscle_biceps_01": ((0.0, 0.0, 0.0), (0.0, 1.0, 0.0))}
+    points = {0: (0.5, 0.0, 0.0), 1: (0.5, 0.5, 0.0), 2: (0.5, 1.0, 0.0)}
+    weights = {index: {"muscle_biceps_01": 1.0} for index in points}
+    tapered = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05, anatomical_taper=True
+    )["muscle_biceps_01"]
+    # sin(pi * 0) and sin(pi * 1) vanish: the bulge dies at both tendons.
+    for vertex in (0, 2):
+        assert all(abs(value) < 1e-12 for value in tapered[vertex]), tapered
+    # t = 0.5 is the belly of the muscle: the full spike cap, 0.3 * 0.1.
+    assert abs(tapered[1][0] - 0.03) < 1e-9, tapered[1]
+    assert abs(tapered[1][1]) < 1e-9 and abs(tapered[1][2]) < 1e-9, tapered[1]
+    # The flag defaults to False: the old radial bulge is bit for bit the same.
+    plain = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05
+    )["muscle_biceps_01"]
+    explicit = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05, anatomical_taper=False
+    )["muscle_biceps_01"]
+    for vertex in points:
+        assert tuple(plain[vertex]) == tuple(explicit[vertex]), plain
+        assert abs(plain[vertex][0] - 0.03) < 1e-9, plain  # no taper at all
+    # The bake operator exposes the option, defaulting to False.
+    annotations = getattr(
+        muscle_bake.FLEXFORGE_OT_bake_shape_keys, "__annotations__", {}
+    )
+    assert "anatomical_taper" in annotations, annotations
+
+
+def test_anatomical_taper_spans_multi_segment_chain():
+    segments = {
+        "muscle_pec_01": ((0.0, 0.0, 0.0), (0.0, 0.5, 0.0)),
+        "muscle_pec_02": ((0.0, 0.5, 0.0), (0.0, 1.0, 0.0)),
+    }
+    points = {0: (0.5, 0.25, 0.0), 1: (0.5, 0.5, 0.0), 2: (0.5, 1.0, 0.0)}
+    # Vertex 0 hangs on the first segment only, vertex 2 on the last one: the
+    # taper is still measured along the whole head->tail of the muscle, not
+    # along the single segment they are weighted on.
+    weights = {
+        0: {"muscle_pec_01": 1.0},
+        1: {"muscle_pec_01": 0.5, "muscle_pec_02": 0.5},
+        2: {"muscle_pec_02": 1.0},
+    }
+    deltas = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05, anatomical_taper=True
+    )
+    # 0.05 split over two segments is 0.025, under the 0.03 spike cap.
+    quarter = deltas["muscle_pec_01"][0]
+    assert abs(quarter[0] - 0.025 * math.sin(math.pi * 0.25)) < 1e-9, quarter
+    assert abs(quarter[1]) < 1e-9 and abs(quarter[2]) < 1e-9, quarter
+    # The seam sits at t = 0.5 of the chain: the peak, on both segments.
+    for name in ("muscle_pec_01", "muscle_pec_02"):
+        seam = deltas[name][1]
+        assert abs(seam[0] - 0.025) < 1e-9, (name, seam)
+        assert abs(seam[1]) < 1e-9, (name, seam)
+    assert all(abs(value) < 1e-12 for value in deltas["muscle_pec_02"][2]), (
+        deltas
+    )
+
+
+def test_apply_muscle_bake_smooth_iterations_blends_edges():
+    parent = _FakeBone("upper_arm.L", (0.0, 0.0, 0.0), (0.0, 1.0, 0.0))
+    muscle = _FakeBone(
+        "muscle_biceps_01", (0.0, 0.0, 0.0), (0.0, 1.0, 0.0), parent
+    )
+    armature = _FakeArmature([parent, muscle])
+    # Only vertex 0 carries the helper: vertex 1 is a plain neighbour linked by
+    # one edge, so the Laplacian pass is the only thing that can move it.
+    plain = _FakeObject(
+        {0: {"muscle_biceps_01": 1.0}, 1: {}},
+        coordinates=[(0.1, 0.5, 0.0), (0.3, 0.5, 0.0)],
+    )
+    plain.data.edges = [types.SimpleNamespace(vertices=(0, 1))]
+    report = muscle_bake.apply_muscle_bake(plain, armature)
+    assert report["vertices_displaced"] == 1, report
+    assert abs(plain.shape_keys_created[1].data[0].co[0] - 0.13) < 1e-9, (
+        plain.shape_keys_created[1].data[0].co
+    )
+    assert abs(plain.shape_keys_created[1].data[1].co[0] - 0.3) < 1e-9, (
+        plain.shape_keys_created[1].data[1].co
+    )
+
+    smoothed = _FakeObject(
+        {0: {"muscle_biceps_01": 1.0}, 1: {}},
+        coordinates=[(0.1, 0.5, 0.0), (0.3, 0.5, 0.0)],
+    )
+    smoothed.data.edges = [types.SimpleNamespace(vertices=(0, 1))]
+    report = muscle_bake.apply_muscle_bake(smoothed, armature,
+                                           smooth_iterations=1)
+    # One pass at factor 0.5 splits the 0.03 spike between the two ends of the
+    # edge: each one ends up with half of it, and both vertices are displaced.
+    assert report["vertices_displaced"] == 2, report
+    key = smoothed.shape_keys_created[1]
+    assert abs(key.data[0].co[0] - (0.1 + 0.015)) < 1e-9, key.data[0].co
+    assert abs(key.data[1].co[0] - (0.3 + 0.015)) < 1e-9, key.data[1].co
+    assert abs(key.data[0].co[1] - 0.5) < 1e-9, key.data[0].co
+    assert abs(key.data[1].co[1] - 0.5) < 1e-9, key.data[1].co
+    annotations = getattr(
+        muscle_bake.FLEXFORGE_OT_bake_shape_keys, "__annotations__", {}
+    )
+    assert "smooth_iterations" in annotations, annotations
+
+
+def test_directional_bias_favors_anatomical_side():
+    segments = {"muscle_biceps_01": ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0))}
+    points = {0: (0.5, -0.5, 0.0), 1: (0.5, 0.5, 0.0)}
+    weights = {vertex: {"muscle_biceps_01": 1.0} for vertex in points}
+    plain = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05
+    )["muscle_biceps_01"]
+    # The flag defaults to False: both sides of the muscle push the same cap.
+    assert abs(plain[0][1] + 0.03) < 1e-9, plain[0]
+    assert abs(plain[1][1] - 0.03) < 1e-9, plain[1]
+
+    # The biceps bulges forward (-Y): the front vertex keeps the full push.
+    biased = muscle_shape.compute_muscle_shape_deltas(
+        points, weights, segments, 0.05, directional_bias=True
+    )["muscle_biceps_01"]
+    assert abs(biased[0][1] + 0.03) < 1e-9, biased[0]
+    # The back one keeps only the 0.15 floor: 0.03 * 0.15.
+    assert abs(biased[1][1] - 0.0045) < 1e-9, biased[1]
+    assert abs(biased[1][1]) < abs(biased[0][1]), biased
+
+    # A posterior muscle mirrors the bias on the other side.
+    triceps = {"muscle_triceps_01": ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0))}
+    back = muscle_shape.compute_muscle_shape_deltas(
+        points, {vertex: {"muscle_triceps_01": 1.0} for vertex in points},
+        triceps, 0.05, directional_bias=True,
+    )["muscle_triceps_01"]
+    assert abs(back[1][1] - 0.03) < 1e-9, back[1]
+    assert abs(back[0][1] + 0.0045) < 1e-9, back[0]
+
+    # A bone without an anatomical family is left untouched by the flag.
+    unknown = {"muscle_forearm_01": ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0))}
+    same = muscle_shape.compute_muscle_shape_deltas(
+        points, {vertex: {"muscle_forearm_01": 1.0} for vertex in points},
+        unknown, 0.05, directional_bias=True,
+    )["muscle_forearm_01"]
+    assert abs(same[1][1] - 0.03) < 1e-9, same[1]
+    assert abs(same[0][1] + 0.03) < 1e-9, same[0]
+
+    annotations = getattr(
+        muscle_bake.FLEXFORGE_OT_bake_shape_keys, "__annotations__", {}
+    )
+    assert "directional_bias" in annotations, annotations
+
+
 def _main():
     tests = [
         test_shape_key_name_for_bone,
@@ -1072,6 +1220,10 @@ def _main():
         test_attach_pose_drivers_creates_rotation_diff,
         test_attach_pose_drivers_ignores_missing_targets,
         test_attach_pose_drivers_rejects_non_positive_max_angle,
+        test_anatomical_taper_zero_at_joints_peak_at_center,
+        test_anatomical_taper_spans_multi_segment_chain,
+        test_directional_bias_favors_anatomical_side,
+        test_apply_muscle_bake_smooth_iterations_blends_edges,
     ]
 
     passed = 0
