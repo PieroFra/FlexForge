@@ -1,0 +1,76 @@
+# ROADMAP — FlexForge
+
+Stato: **fasi 0, 1, 2 e 3 chiuse con gate (bootstrap, MVP muscolare, verifica deformazione, export glTF, smoke test ENGINE Godot PASS; toolkit Weight Paint: transfer + pulizia + mirror; Unity editor 6000.6.6f1 con licenza Personal attiva e smoke PASS; Unreal fuori perimetro)**. Le fasi vanno chiuse una alla volta, con gli anelli della catena di montaggio verdi prima di passare alla successiva.
+
+## Fase 0 — Workspace e bootstrap installabile (CHIUSA)
+
+Obiettivo: workspace funzionante e pacchetto installabile minimo, come base per ogni modulo successivo.
+
+- **Realizzato:** `flexforge/__init__.py`, `flexforge/ui.py` (pannello `FLEXFORGE_PT_main`), `flexforge/blender_manifest.toml`, test `tests/test_bootstrap.py`.
+- **Verifica (2026-11-21):** test headless eseguito su Blender 4.2.23 e 5.3.0 con esito `RISULTATO passati=6 falliti=0 totale=6` su entrambi (exit 0); target compatibilità **4.2+**. Smoke test e Gate interattivo restano **NOT CONFIGURED**; Gate GUI interattivo manuale NOT CONFIGURED (la probe UI headless, attiva in Fase 4, qui non esisteva ancora).
+- **Fuori perimetro:** sistema muscolare, strumenti Weight Paint, pubblicazione.
+
+## Fase 1 — MVP muscolo (CHIUSA)
+
+Obiettivo: un bicipite su rig umanoide di test, con contrazione guidata dalla posa e un pannello FlexForge per crearlo e regolarne i parametri minimi, più il primo strumento di gestione pesi.
+
+- **Realizzato:** `flexforge/muscle.py` (operatore `FLEXFORGE_OT_create_biceps`, bicipite con contrazione driven dalla posa) e `flexforge/weights.py` (utility pesi + operatore `FLEXFORGE_OT_limit_weights`), con test `tests/test_muscle.py` (8 casi) e `tests/test_weights.py` (10 casi).
+- **Gate verdi (2026-11-21, bicipite + pesi):** suite headless su Blender 4.2.23 e 5.3.0, exit 0 su entrambi — muscle `RISULTATO passati=8 falliti=0 totale=8`, weights `RISULTATO passati=10 falliti=0 totale=10`, bootstrap `RISULTATO passati=6 falliti=0 totale=6`; audit `preset-compatible` **SAFE**; revisore con fix applicati. Smoke test e Gate interattivo restano **NOT CONFIGURED**; Gate GUI interattivo manuale NOT CONFIGURED (la probe UI headless, attiva in Fase 4, qui non esisteva ancora).
+- **Fuori perimetro:** più di un muscolo, toolkit Weight Paint, export verso engine, pubblicazione.
+
+## Fase 2 — Verifica deformazione ed export glTF (CHIUSA CON GATE)
+
+Obiettivo: provare che la deformazione muscolare regge: check pesi/simmetria e prova di esportazione del risultato.
+
+- **Prerequisiti:** fase 1 chiusa con gate verdi (bicipite + pesi) — soddisfatto.
+- **Modulo validazione chiuso (2026-11-21):** `flexforge/verify.py` (`valida_deformazione` + operatore `FLEXFORGE_OT_verify`, quarta classe registrata) e `tests/test_verify.py` (8 casi); revisore con 3 fix applicati (EPS unico, controlli negativi, helper vuoto).
+- **Gate verdi (2026-11-21, verifica deformazione):** test headless su Blender 4.2.23 e 5.3.0, exit 0 su entrambi — verify `RISULTATO passati=8 falliti=0 totale=8`, weights `RISULTATO passati=10 falliti=0 totale=10`; suite completa (4 file) verde; audit `preset-compatible` **SAFE**. Smoke test e Gate interattivo restano **NOT CONFIGURED**; Gate GUI interattivo manuale NOT CONFIGURED (la probe UI headless, attiva in Fase 4, qui non esisteva ancora).
+- **Modulo export chiuso (2026-11-21):** `flexforge/export_gltf.py` (operatore `FLEXFORGE_OT_export_gltf`, quinta classe registrata: selezione esplicita mesh+armatura+helper, budget pesi applicato prima dell'export) e `tests/test_export_gltf.py` (14 casi al gate, poi 18 dopo l'aggiunta dei 4 casi per exporter mancante/fallito e ripristino selezione); revisore con fix applicati.
+- **Gate verdi (2026-11-21, export glTF):** test headless su Blender 4.2.23 e 5.3.0, exit 0 su entrambi — export `RISULTATO passati=14 falliti=0 totale=14`, bootstrap `RISULTATO passati=6 falliti=0 totale=6` (registrazione a 5 classi verificata); audit `preset-compatible` **PASS 6/6**. Smoke test e Gate interattivo restano **NOT CONFIGURED**; Gate GUI interattivo manuale NOT CONFIGURED (la probe UI headless, attiva in Fase 4, qui non esisteva ancora).
+- **Smoke test ENGINE chiuso con gate (2026-11-21):** Godot 4.7.1 headless (skill `engine-smoke-test`) sul `.glb` reale dell'export (3120 byte in `~/.cache/opencode/tmp/flexforge_test.glb`): `ENGINE_CHECK_OK | engine=godot | file=flexforge_test.glb | bones=3 | seg_bones=3 | meshes=1 | anims=0 | max_len=0.00s`, exit 0. Unity e Unreal **NON ESEGUIBILE** al momento del gate (non installati allora; oggi Unity 6000.6.10f1 installato ma senza licenza — vedi Fase 4 — e Unreal fuori perimetro per decisione). Nota non bloccante: MeshOptimizer assente in Blender 5.2.2 (errore non bloccante).
+- **Target engine (CHIUSO, aggiornato per decisione):** Godot + Unity (Unreal fuori perimetro); smoke Unity NON ESEGUIBILE finché la licenza editor non è attiva (vedi Fase 4).
+- **Fuori perimetro:** tool di editing pesi, pipeline di pubblicazione.
+
+## Fase 3 — Toolkit Weight Paint (CHIUSA CON GATE)
+
+Obiettivo: utility per il workflusso pesi su muscoli: transfer, normalizzazione, controlli.
+
+- **Prerequisiti:** fase 2 chiusa con verifica deformazione verde — soddisfatto.
+- **Modulo 1 chiuso (2026-11-21):** `flexforge/weight_transfer.py` (operatore `FLEXFORGE_OT_weight_transfer`, sesta classe: trasferimento dal vertice di riferimento più vicino entro soglia, mapping L/R, normalizzazione, limite 4 influenze) e `tests/test_weight_transfer.py` (10 casi).
+- **Modulo 2 chiuso (2026-11-21):** `flexforge/weights_cleanup.py` (operatore `FLEXFORGE_OT_cleanup_weights`, settima classe: rimozione pesi ≤EPS, gruppi orfani, rimozione oltre budget) e `tests/test_weights_cleanup.py` (9 casi); fix del revisore sui casi operatore (operatore finto).
+- **Modulo 3 chiuso (2026-11-21):** `flexforge/weights_mirror.py` (operatore `FLEXFORGE_OT_mirror_weights`, ottava classe: mirror L/R con normalizzazione e limite) e `tests/test_weights_mirror.py` (8 casi).
+- **Refactor debito (2026-11-21):** `flexforge/weight_nomi.py` (mapping L/R condiviso), `flexforge/armatura.py` (helper armatura condiviso tra verify/export); `weight_transfer.py` da 259 a 243 righe, tutti i moduli sotto ~250 righe.
+- **Gate verdi (2026-11-21):** suite completa (10 file) su Blender 4.2.23 e 5.3.0, exit 0 su tutti i 20 run (bootstrap 6/6, muscle 8/8, weights 10/10, verify 8/8, export 18/18, weight transfer 10/10, cleanup 9/9, mirror 8/8, nomi 2/2, armatura 3/3); 8 classi verificate da `test_bootstrap.py`.
+- **Fuori perimetro:** brush e auto-weights avanzati, automazione end-to-end dei pesi, deformazione muscolare avanzata.
+
+## Fase 4 — Pre-release (IN CORSO)
+
+Obiettivo: rendere il pacchetto rilasciabile: compatibilità proprietà, documenti allineati, packaging pronto.
+
+- **Prerequisiti:** fasi 1–3 chiuse con catena verde — soddisfatto.
+- **Contenuto:** audit `preset-compatible`, audit documentazione (`audit-docs`), packaging per Blender Extensions con dichiarazione supporto Godot + Unity (Unity smoke NON ESEGUIBILE senza licenza editor) e prove per release; configurazione di probe UI e gate `VERDICT_*` (probe UI headless attiva in Fase 4; Gate GUI interattivo manuale ancora NOT CONFIGURED).
+- **Compatibilità proprietà (2026-11-21):** audit `preset-compatible` SAFE su 12 moduli — nessuna prop persistente (0 PropertyGroup), ordine registrazione + unregister inverso OK, solo API comuni 4.2/5.3, bl_info/manifest coerenti (0.0.1 / 4.2.0), default props dentro i limiti, nessun file >250 righe (max 243).
+- **Gate GUI MCP+GUI (2026-11-21):** socket Blender MCP `127.0.0.1:9876` (Blender 5.2.2 live): `VERDICT_MCPGUI_REGISTER_OK classi=8`, `VERDICT_MCPGUI_OPS_OK` 5/5 `FINISHED`, `VERDICT_MCPGUI_OK | operatori=5`, export `.glb` 2,8K ossa=3; scena di prova pulita (`VERDICT_MCPGUI_CLEAN_OK`). Skill `addon-mcp-gui-gate` creata per questa procedura. Gate GUI Xvfb (display virtuale senza finestra visibile) resta NOT CONFIGURED.
+- **Gate GUI Xvfb + ispezione visiva (2026-11-21, post-traduzione):** Blender 5.3 in GUI su Xvfb: `VERDICT_GUI_REGISTER_OK classi=8`, `VERDICT_GUI_OPS_OK` 5/5 `FINISHED`, `VERDICT_GUI_OK | operatori=5 render=ok`; render viewport 80K ispezionato a vista (cubo di prova grigio su sfondo nero, nessuna armatura visibile in Workbench come atteso). Screenshot sidebar fornito dall'utente: 7 bottoni in inglese, nessun difetto di layout.
+- **Probe UI (2026-11-21):** `tests/test_ui_probe.py` — pannello registrato, 7 operatori esposti in `bpy.ops`, draw con tutti i bottoni: `VERDICT_UI_OK | passati=3 falliti=0 totale=3` su 4.2.23 e 5.3.0. Gate GUI interattivo manuale ancora NOT CONFIGURED.
+- **Packaging (2026-11-21):** `dist/flexforge-1.0.0.zip` (13 file, sha256 `37b7b5b4...a50d`); installazione verificata in Blender 5.3 headless: `PKG_OK classi=8`, `PKG_OPERATORS_OK`. Descrizioni stale in bl_info/manifest aggiornate.
+- **Traduzione inglese (2026-11-21):** 12 moduli + 11 test tradotti (UI, messaggi, errori, nomi funzioni in inglese; docs restano italiani). Suite rieseguita: 85/85 su Blender 4.2.23 e 5.3.0; gate MCP+GUI inglese 5/5 `FINISHED` (messaggi EN verbatim); Godot `ENGINE_CHECK_OK` e Unity `ENGINE_CHECK_OK` rieseguiti; screenshot sidebar con 7 bottoni in inglese (Intestazione `FlexForge - muscles and weights`, `Create biceps`, `Limit weights`, `Verify deformation`, `Export glTF`, `Transfer weights`, `Clean weights`, `Mirror weights`); pacchetto inglese `dist/flexforge-1.0.0.zip` 18722 byte sha256 `576d579d...f92`, `PKG_OK classi=8`.
+- **Ricostruzione pacchetto + suite Windows (2026-11-21):** `dist/flexforge-1.0.0.zip` ricreato con il Python di Blender 5.2 (13 file, 20291 byte, sha256 `5ccaf5197496cae1b404a968789c754a2fbde92c03b987f5f43f0ab6fba53a4c`); suite rieseguita su Blender 5.2 Windows: 11 file, 88/88 — muscle 9/9 (STRETCH_TO/bulge), weights_mirror 9/9 (`mirror_weights_spatial` asse X), ui_probe 4/4 (`context_summary`), altri conteggi invariati.
+- **Moduli muscolo + ricostruzione pacchetto (2026-11-21):** nuovi moduli `flexforge/muscle_presets.py` (operatore `FLEXFORGE_OT_create_muscle_preset`, nona classe), `flexforge/muscle_skinning.py` (operatore `FLEXFORGE_OT_bind_muscles`, decima classe) e `flexforge/muscle_bake.py` (operatore `FLEXFORGE_OT_bake_shape_keys`, undicesima classe); suite su Blender 5.2 Windows: 14 file, 133/133 — `muscle_presets` 15/15, `muscle_skinning` 16/16, `muscle_bake` 14/14, bootstrap 6/6 su 11 classi, ui_probe 4/4 su 10 operatori; `dist/flexforge-1.0.0.zip` ricreato con il Python di Blender 5.2: **16 file, 29295 byte, sha256 `89b4a39db80cf1635ee69d425fd20154f675f51f5e69b44bb5588695b7317415`**.
+- **Griglia spaziale + alias multi-rig + pacchetto (2026-11-21):** nuovo modulo `flexforge/spatial_grid.py` (62 righe, griglia spaziale 3D O(N), nessun operatore); `flexforge/weight_nomi.py` esteso con alias multi-rig e infissi L/R (94 righe; test `test_weight_nomi.py` `RISULTATO passati=3 falliti=0 totale=3`); suite su Blender 5.2 Windows: 14 file, 134/134; `dist/flexforge-1.0.0.zip` ricreato con il Python di Blender 5.2: **17 file, 31656 byte, sha256 `f47fbd54855d6fe861634f6fd044d910b114539531e37a3e406bedef71c51091`**.
+- **Modulo muscle_shape + ricostruzione pacchetto (2026-11-21):** nuovo helper `flexforge/muscle_shape.py` (104 righe, nessun operatore registrato); `dist/flexforge-1.0.0.zip` ricreato con il Python di Blender 5.2: **18 file, 34228 byte, sha256 `a8e2dd253f3f8a8840fe3702b1c29a29ac5cf9d253dc5bc8da18acfc56929a54`**.
+- **Release 1.0.0 (2026-11-22):** pacchetto `dist/flexforge-1.0.0.zip` ricostruito con il Python di Blender 5.2 — **20 file, 41415 byte, sha256 `c53c4be6a0a3c037c175ffc05f5b06bcba4169c4da0745d6092bfe4f0e681495`** (integrità verificata: nessun percorso duplicato, `flexforge/__init__.py` e `flexforge/blender_manifest.toml` a versione 1.0.0); suite su Blender 5.2 Windows: **15 file, 170/170** (12 classi, 11 operatori); GUI a 5 box con icone, sezione `Muscle Bulge Controls`, contrazione `drive_by_pose`, alias `Bip01` multi-rig; smoke ENGINE su **Godot 4.7.2** e **Unity 6000.6.6f1**: `ENGINE_CHECK_OK`.
+- **Smoke Unity (2026-11-21):** licenza Personal attiva in Hub Flatpak 3.22.6 (`UnityEntitlementLicense.xml` nella sandbox Hub, copiato in `~/.config/unity3d/Unity/licenses/` dove l'editor la cerca); smoke `ENGINE_CHECK_OK | engine=Unity-6000.6.10f1 | file=flexforge_test.fbx | bones=3 | meshes=1 | clips=2 | max_len=1,21s`, exit 0.
+- **Fix `muscle_bake.py` + ricostruzione pacchetto (2026-11-22):** fix in `flexforge/muscle_bake.py` (verde in suite: **15 suite, 175/175** su Blender 5.2 Windows); `dist/flexforge-1.0.0.zip` ricostruito con il Python di Blender 5.2 — **21 file, 42634 byte, sha256 `4cbe6a857195333c652760e610523744011522faae7acb6e55d5ba088b231674`** (integrità verificata: nessun percorso duplicato, `flexforge/__init__.py` a versione (1, 0, 0) e `flexforge/blender_manifest.toml` a 1.0.0 presenti).
+- **Fix `muscle_capsule.py` + ricostruzione pacchetto (2026-11-22, m33-test):** fix in `flexforge/muscle_capsule.py`; suite su Blender 5.2 Windows: **15 suite, 175/175** (`VERIFY_OK | passed=175 | failed=0 | diff=0`); `dist/flexforge-1.0.0.zip` ricostruito con il Python di Blender 5.2 — **21 file, 42723 byte, sha256 `8fd1d1fad4f2964ded1b8458ac1dfe8fdb0936309ba33660a229cceb53ac4413`** (integrità verificata: nessun percorso duplicato, `flexforge/muscle_capsule.py`, `flexforge/__init__.py` a `"version": (1, 0, 0)` e `flexforge/blender_manifest.toml` a 1.0.0 presenti).
+- **Split muscle_skinning + ricostruzione pacchetto (2026-11-22):** split di `flexforge/muscle_skinning.py` (192 → 175 righe) con nuovo modulo `flexforge/muscle_capsule.py` (231 righe, nessun operatore registrato); suite su Blender 5.2 Windows: **15 suite, 174/174**; `dist/flexforge-1.0.0.zip` ricostruito con il Python di Blender 5.2 — **21 file, 42425 byte, sha256 `241f3729a3a4fa95fb8a540c2fca170d6ffd1d5f2c64a41c6d4ba7cff7236a45`** (integrità verificata: nessun percorso duplicato, `flexforge/muscle_capsule.py`, `flexforge/__init__.py` e `flexforge/blender_manifest.toml` presenti).
+- **Modulo i18n + ricostruzione pacchetto (2026-11-22):** nuovo modulo `flexforge/i18n.py` (84 righe, traduzione `it_IT`, nessun operatore registrato) con suite `test_i18n.py`; suite su Blender 5.2 Windows: **16 suite, 179/179**; `dist/flexforge-1.0.0.zip` ricostruito con il Python di Blender 5.2 — **22 file, 44314 byte, sha256 `9936f343fdce90f174759157cab460129d29d34433e3860d4d337db33b05e3b3`** (integrità verificata: nessun percorso duplicato, `flexforge/i18n.py`, `flexforge/__init__.py` a `"version": (1, 0, 0)` e `flexforge/blender_manifest.toml` a 1.0.0 presenti; `extension validate` Blender 5.2: exit 0).
+- **Fuori perimetro:** pubblicazione sui canali, trailer/marketing.
+
+## Fase 5 — Rilascio
+
+Obiettivo: pubblicare su Blender Extensions, Blender Artists e Reddit.
+
+- **Prerequisiti:** fase 4 chiusa con audit verdi e packaging verificato.
+- **Contenuto:** upload su Blender Extensions, thread Blender Artists, post Reddit.
+- **Fuori perimetro:** sviluppo di nuove funzionalità (roadmap successiva separata).

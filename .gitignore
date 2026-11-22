@@ -1,0 +1,6 @@
+_esperimenti/
+.opencode/
+__pycache__/
+*.pyc
+*.pyo
+dist/
