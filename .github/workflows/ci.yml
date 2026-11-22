@@ -32,7 +32,7 @@ jobs:
           New-Item -ItemType Directory -Force blender | Out-Null
           if (-not (Test-Path blender/.done)) {
             $url = "https://download.blender.org/release/${{ matrix.blender.dir }}/blender-${{ matrix.blender.ver }}-linux-x64.tar.xz"
-            curl.exe -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz $url
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz $url
             tar -xf blender/blender.tar.xz -C blender
             New-Item blender/.done | Out-Null
           }
@@ -44,7 +44,7 @@ jobs:
           New-Item -ItemType Directory -Force blender | Out-Null
           if (-not (Test-Path blender/.done)) {
             $url = "https://download.blender.org/release/${{ matrix.blender.dir }}/blender-${{ matrix.blender.ver }}-windows-x64.zip"
-            curl.exe -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.zip $url
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.zip $url
             Expand-Archive blender/blender.zip -DestinationPath blender -Force
             New-Item blender/.done | Out-Null
           }
@@ -83,7 +83,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force blender | Out-Null
           if (-not (Test-Path blender/.done)) {
-            curl.exe -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
             tar -xf blender/blender.tar.xz -C blender
             New-Item blender/.done | Out-Null
           }
