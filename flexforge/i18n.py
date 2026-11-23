@@ -35,6 +35,7 @@ _OPERATOR_LABELS = {
     "Mirror weights": "Specchia pesi",
     "Limit weights": "Limita pesi",
     "Verify deformation": "Verifica deformazione",
+    "Apply engine budget": "Applica budget motore",
     "Export glTF": "Esporta glTF",
 }
 
