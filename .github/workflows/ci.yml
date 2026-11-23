@@ -1,0 +1,109 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        blender:
+          - { ver: "4.2.3", dir: "Blender4.2" }
+          - { ver: "5.2.0", dir: "Blender5.2" }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Blender
+        uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-${{ matrix.blender.ver }}-${{ matrix.os }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0
+
+      - name: Download Blender (Linux)
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force blender | Out-Null
+          if (-not (Test-Path blender/.done)) {
+            $url = "https://download.blender.org/release/${{ matrix.blender.dir }}/blender-${{ matrix.blender.ver }}-linux-x64.tar.xz"
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz $url
+            tar -xf blender/blender.tar.xz -C blender
+            New-Item blender/.done | Out-Null
+          }
+
+      - name: Download Blender (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force blender | Out-Null
+          if (-not (Test-Path blender/.done)) {
+            $url = "https://download.blender.org/release/${{ matrix.blender.dir }}/blender-${{ matrix.blender.ver }}-windows-x64.zip"
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.zip $url
+            Expand-Archive blender/blender.zip -DestinationPath blender -Force
+            New-Item blender/.done | Out-Null
+          }
+
+      - name: Run test suites
+        shell: pwsh
+        run: |
+          $dir = "${{ matrix.blender.dir }}".ToLower()
+          $bl = if ($IsWindows) { "blender/blender-${{ matrix.blender.ver }}-windows-x64/blender.exe" } else { "blender/blender-${{ matrix.blender.ver }}-linux-x64/blender" }
+          $fail = 0
+          foreach ($f in Get-ChildItem tests/test_*.py) {
+            Write-Host "=== $($f.Name) ==="
+            & $bl -b --factory-startup --python $f.FullName
+            if ($LASTEXITCODE -ne 0) { $fail++ }
+          }
+          Write-Host "Suites failed: $fail"
+          exit $fail
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Blender
+        uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-5.2.0-ubuntu-latest
+
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0
+
+      - name: Download Blender
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force blender | Out-Null
+          if (-not (Test-Path blender/.done)) {
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors --fail -A "Mozilla/5.0" -o blender/blender.tar.xz "https://download.blender.org/release/Blender5.2/blender-5.2.0-linux-x64.tar.xz"
+            tar -xf blender/blender.tar.xz -C blender
+            New-Item blender/.done | Out-Null
+          }
+
+      - name: Build dist zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Get-ChildItem flexforge -Directory -Filter __pycache__ -Recurse | Remove-Item -Recurse -Force
+          Compress-Archive -Path flexforge -DestinationPath dist/flexforge-1.0.2.zip -Force
+
+      - name: Validate extension
+        shell: pwsh
+        run: |
+          $bl = "blender/blender-5.2.0-linux-x64/blender"
+          & $bl --command extension validate dist/flexforge-1.0.2.zip
+          exit $LASTEXITCODE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flexforge-1.0.2
+          path: dist/flexforge-1.0.2.zip
