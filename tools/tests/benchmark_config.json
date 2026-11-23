@@ -1,0 +1,15 @@
+{
+  "volume_drift_max": 0.05,
+  "penetration_max_depth": 0.001,
+  "penetrating_vertices_max": 0,
+  "max_vertex_displacement_max": 0.05,
+  "stability_volume_std_max": 0.02,
+  "stability_jitter_max": 0.01,
+  "roundtrip_max_error": 1e-09,
+  "times_max_s": {
+    "10000": 2.0,
+    "50000": 5.0,
+    "100000": 10.0
+  },
+  "per_vertex_s_max": 0.0001
+}
