@@ -245,15 +245,15 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 208
-- simboli: 15
+- righe totali: 671
+- simboli: 38
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `BakeError` | 19-20 | 0 |
+| `BakeError` | 21-22 | 0 |
 
 ## Metodi
 
