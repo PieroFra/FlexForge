@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 81
+- righe totali: 83
 - simboli: 2
 - classi: 0
 
@@ -94,7 +94,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 105
+- righe totali: 106
 - simboli: 3
 - classi: 0
 
@@ -317,6 +317,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 - `execute`: 167-198
 
 
+# INDEX AST — rig_detect.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 218
+- simboli: 9
+- classi: 2
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `RigDetectError` | 18-19 | 0 |
+| `FLEXFORGE_OT_detect_rig` | 196-217 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_detect_rig` (196-217)
+
+- `execute`: 204-217
+
+
 # INDEX AST — settings.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
@@ -354,7 +376,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 159
+- righe totali: 160
 - simboli: 4
 - classi: 1
 
@@ -362,13 +384,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 43-158 | 1 |
+| `FLEXFORGE_PT_main` | 43-159 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (43-158)
+### `FLEXFORGE_PT_main` (43-159)
 
-- `draw`: 52-158
+- `draw`: 52-159
 
 
 # INDEX AST — verify.py

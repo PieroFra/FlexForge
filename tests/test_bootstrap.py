@@ -79,14 +79,14 @@ def test_bl_info_fields():
 def test_expected_classes():
     import flexforge
     assert isinstance(flexforge._CLASSES, tuple), "_CLASSES is not a tuple"
-    assert len(flexforge._CLASSES) == 14, (
-        "expected 14 classes (panel + muscle operator + weights operator"
+    assert len(flexforge._CLASSES) == 15, (
+        "expected 15 classes (panel + muscle operator + weights operator"
         " + verify operator + glTF export operator"
         " + weight transfer operator + weight cleanup operator"
         " + weight mirror operator + muscle preset operator"
         " + muscle binding operator + shape key bake operator"
         " + skin bounce bake operator + clear muscles operator"
-        " + engine budget operator),"
+        " + engine budget operator + rig detection operator),"
         " found %d: %s"
         % (len(flexforge._CLASSES), [c.bl_idname for c in flexforge._CLASSES])
     )
@@ -104,6 +104,7 @@ def test_expected_classes():
     assert flexforge._CLASSES[11].bl_idname == "flexforge.bake_bounce"
     assert flexforge._CLASSES[12].bl_idname == "flexforge.clear_muscles"
     assert flexforge._CLASSES[13].bl_idname == "flexforge.apply_budget"
+    assert flexforge._CLASSES[14].bl_idname == "flexforge.detect_rig"
 
 
 def test_sidebar_panel():
@@ -134,7 +135,7 @@ def test_register_unregister():
     # counter is used to tell a broken register from a working one.
     flexforge.register()
     if uses_stub:
-        assert len(bpy._registrate) == 14, "register() not registered with stub"
+        assert len(bpy._registrate) == 15, "register() not registered with stub"
     else:
         assert hasattr(bpy.types, "FLEXFORGE_PT_main"), (
             "register() did not register the panel in bpy.types"
@@ -150,7 +151,7 @@ def test_register_unregister():
     # case where the second pair of calls is a no-op.
     if uses_stub:
         flexforge.register()
-        assert len(bpy._registrate) == 14, "register() not registered with stub"
+        assert len(bpy._registrate) == 15, "register() not registered with stub"
         flexforge.unregister()
         assert len(bpy._registrate) == 0, "unregister() did not remove with stub"
 

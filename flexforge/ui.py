@@ -151,6 +151,7 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
         box.label(text="Validation & Export", icon="CHECKMARK")
         box.operator("flexforge.verify", text="Verify deformation", icon="CHECKMARK")
         box.operator("flexforge.apply_budget", text="Apply engine budget", icon="CONSTRAINT_BONE")
+        box.operator("flexforge.detect_rig", text="Detect rig", icon="ARMATURE_DATA")
         box.operator("flexforge.export_gltf", text="Export glTF", icon="EXPORT")
 
         box = layout.box()

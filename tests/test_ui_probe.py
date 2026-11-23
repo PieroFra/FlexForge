@@ -29,6 +29,7 @@ OPERATOR_IDS = [
     "flexforge.limit_weights",
     "flexforge.verify",
     "flexforge.apply_budget",
+    "flexforge.detect_rig",
     "flexforge.export_gltf",
     "flexforge.create_biceps",
 ]

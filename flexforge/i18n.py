@@ -36,6 +36,7 @@ _OPERATOR_LABELS = {
     "Limit weights": "Limita pesi",
     "Verify deformation": "Verifica deformazione",
     "Apply engine budget": "Applica budget motore",
+    "Detect rig": "Rileva rig",
     "Export glTF": "Esporta glTF",
 }
 

@@ -21,7 +21,7 @@ bl_info = {
 # muscle_skinning the muscle binding operator, muscle_bake the shape key
 # bake operator, muscle_bounce the skin bounce bake operator and muscle_clear
 # the cleanup operator of the muscle data, engine_budget the engine budget
-# operator.
+# operator and rig_detect the rig detection operator.
 # settings holds the Scene PropertyGroup with the addon options,
 # i18n holds the it_IT translation catalogue (no class registered).
 from . import (
@@ -34,6 +34,7 @@ from . import (
     muscle_clear,
     muscle_presets,
     muscle_skinning,
+    rig_detect,
     settings,
     ui,
     verify,
@@ -59,6 +60,7 @@ _CLASSES = (
     muscle_bounce.FLEXFORGE_OT_bake_bounce,
     muscle_clear.FLEXFORGE_OT_clear_muscles,
     engine_budget.FLEXFORGE_OT_apply_budget,
+    rig_detect.FLEXFORGE_OT_detect_rig,
 )
 
 
