@@ -205,3 +205,79 @@ def compute_muscle_shape_deltas(vertex_coordinates, weights, muscle_segments,
                 deltas.setdefault(bone_name, {})[vertex] = tuple(
                     component * scale for component in direction)
     return deltas
+
+def compute_rest_length(muscle_segments, bone_radii=None):
+    """Rest length of every muscle: the sum of its segment lengths.
+
+    The segments are grouped by muscle (`muscle_biceps_01/02` are one
+    muscle) and measured with `_segment_geometry`, so the same degenerate
+    segment check applies here as in the shape deltas. Return
+    {shape_key_name: rest_length}.
+    """
+    if not muscle_segments:
+        raise BakeError("At least one muscle segment is required.")
+    groups = _muscle_groups(muscle_segments)
+    geometry = _segment_geometry(muscle_segments, dict(bone_radii or {}))
+    lengths = {}
+    for key, bones in groups.items():
+        total = 0.0
+        for bone_name in bones:
+            axis = geometry[bone_name][1]
+            total += _dot(axis, axis) ** 0.5
+        lengths[key] = total
+    return lengths
+
+def solve_length(rest_length, contraction):
+    """Current length of a muscle at `contraction` (0 rest, 1 fully short).
+
+    The length shortens linearly from `rest_length` to zero: a contraction of
+    0.5 halves it. Return the current length.
+    """
+    if not isinstance(rest_length, (int, float)) or rest_length <= 0.0:
+        raise BakeError("The rest length must be greater than 0.")
+    if not isinstance(contraction, (int, float)) or not 0.0 <= contraction <= 1.0:
+        raise BakeError("The contraction must be between 0 and 1.")
+    return float(rest_length) * (1.0 - float(contraction))
+
+def preserve_volume(rest_radius, rest_length, current_length):
+    """Radius keeping the cylindrical belly volume constant at a new length.
+
+    A muscle is modelled as a cylinder of radius `rest_radius` and length
+    `rest_length`: shortening it to `current_length` must thicken it, so the
+    radius scales with the square root of the length ratio. Return the radius
+    at `current_length`.
+    """
+    if not isinstance(rest_radius, (int, float)) or rest_radius <= 0.0:
+        raise BakeError("The rest radius must be greater than 0.")
+    if not isinstance(rest_length, (int, float)) or rest_length <= 0.0:
+        raise BakeError("The rest length must be greater than 0.")
+    if not isinstance(current_length, (int, float)) or current_length <= 0.0:
+        raise BakeError("The current length must be greater than 0.")
+    return float(rest_radius) * (float(rest_length) / float(current_length)) ** 0.5
+
+def capsule_chain_points(muscle_segments, bone_radii=None, steps_per_segment=8):
+    """Ordered polyline points along every muscle, head to tail.
+
+    Each segment is sampled `steps_per_segment` times from its head to its
+    tail, shared endpoints visited once, so a muscle of `n` segments yields
+    `n * steps_per_segment + 1` points. The bake can use the polyline to
+    place capsule samples along the whole muscle. Return
+    {shape_key_name: [(x, y, z), ...]}.
+    """
+    if not muscle_segments:
+        raise BakeError("At least one muscle segment is required.")
+    if not isinstance(steps_per_segment, int) or steps_per_segment < 1:
+        raise BakeError("The steps per segment must be at least 1.")
+    groups = _muscle_groups(muscle_segments)
+    geometry = _segment_geometry(muscle_segments, dict(bone_radii or {}))
+    chains = {}
+    for key, bones in groups.items():
+        points = []
+        for index, bone_name in enumerate(sorted(bones)):
+            head, axis = geometry[bone_name][0], geometry[bone_name][1]
+            first = 0 if index == 0 else 1
+            for step in range(first, steps_per_segment + 1):
+                factor = step / float(steps_per_segment)
+                points.append(tuple(head[i] + axis[i] * factor for i in range(3)))
+        chains[key] = points
+    return chains

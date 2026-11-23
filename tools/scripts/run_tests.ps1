@@ -35,6 +35,9 @@ if ($Suites) {
     # Suite benchmark di regressione: vive in tools\tests (indice separato, pure Python).
     $benchmark = Join-Path $root 'tools\tests\test_benchmark.py'
     if (Test-Path $benchmark) { $tests = @($tests + $benchmark) }
+    # Suite muscle_shape: esplicita (gia coperta dal glob tests\test_*.py, anti-duplicato).
+    $muscleShape = Join-Path $testsDir 'test_muscle_shape.py'
+    if ((Test-Path $muscleShape) -and ($tests -notcontains $muscleShape)) { $tests = @($tests + $muscleShape) }
     if ($tests.Count -eq 0) { throw "Nessuna suite test_*.py in: $testsDir" }
 }
 
