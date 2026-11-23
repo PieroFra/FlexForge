@@ -3,7 +3,7 @@
     Monolith      = 'flexforge\__init__.py'
     Sources       = @('flexforge')
     Runner        = 'tools\scripts\run_tests.ps1'
-    ExpectedTotal = 228
+    ExpectedTotal = 232
     DiffPaths     = @('flexforge', 'tests')
     IndexOutput   = 'INDEX.md'
 }

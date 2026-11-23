@@ -200,6 +200,64 @@ def test_apply_pose_correction():
     assert as_mapping == corrected, as_mapping
 
 
+def test_bake_morph_target():
+    deltas = {"muscle_biceps_01": {0: (0.1, 0.0, 0.0), 2: (0.0, 0.2, 0.0)}}
+    target = muscle_shape.bake_morph_target(deltas, "flex_biceps", factor=2.0)
+    assert target["name"] == "flex_biceps", target
+    assert target["factor"] == 2.0, target
+    assert target["deltas"]["muscle_biceps_01"][0] == (0.2, 0.0, 0.0), target
+    assert deltas["muscle_biceps_01"][0] == (0.1, 0.0, 0.0), deltas
+    raised = False
+    try:
+        muscle_shape.bake_morph_target({"b": {0: (1.0, 0.0)}}, "flex")
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_export_cache():
+    target = muscle_shape.bake_morph_target(
+        {"muscle_biceps_01": {0: (0.1, 0.0, 0.0)}}, "flex_biceps", factor=2.0)
+    cache = muscle_shape.export_cache(target)
+    assert cache["version"] == 1, cache
+    assert cache["targets"][0]["name"] == "flex_biceps", cache
+    assert cache["targets"][0]["factor"] == 2.0, cache
+    assert cache["targets"][0]["deltas"]["muscle_biceps_01"]["0"] == [0.2, 0.0, 0.0], cache
+    multi = muscle_shape.export_cache([target, target])
+    assert len(multi["targets"]) == 2, multi
+    raised = False
+    try:
+        muscle_shape.export_cache([])
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_import_cache():
+    target = muscle_shape.bake_morph_target(
+        {"muscle_biceps_01": {0: (0.1, 0.0, 0.0)}}, "flex_biceps", factor=2.0)
+    restored = muscle_shape.import_cache(
+        muscle_shape.export_cache([target]))[0]
+    assert restored == target, restored
+    assert isinstance(next(iter(restored["deltas"]["muscle_biceps_01"])), int)
+    raised = False
+    try:
+        muscle_shape.import_cache({"version": 99, "targets": []})
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_roundtrip_check():
+    deltas = {"muscle_biceps_01": {0: (0.1, 0.0, 0.0), 2: (0.0, 0.2, 0.0)},
+              "muscle_triceps_01": {1: (0.01, 0.02, 0.03)}}
+    report = muscle_shape.roundtrip_check(deltas, "flex_all", factor=0.5)
+    assert report["ok"] is True, report
+    assert report["max_error"] == 0.0, report
+    assert report["target_count"] == 1, report
+    assert report["vertex_count"] == 3, report
+
+
 def _main():
     tests = [
         test_compute_rest_length,
@@ -213,6 +271,10 @@ def _main():
         test_rbf_weight,
         test_pose_correction,
         test_apply_pose_correction,
+        test_bake_morph_target,
+        test_export_cache,
+        test_import_cache,
+        test_roundtrip_check,
     ]
 
     passed = 0

@@ -543,3 +543,128 @@ def apply_pose_correction(base_deltas, pose, control_corrections,
                 float(base[axis_index]) + delta[axis_index] / total
                 for axis_index in range(3))
     return result
+
+CACHE_FORMAT_VERSION = 1
+
+def _cache_vertex(vertex):
+    if isinstance(vertex, bool):
+        raise BakeError("A cache vertex index must be an integer.")
+    if isinstance(vertex, int):
+        return vertex
+    if isinstance(vertex, str) and vertex.strip().lstrip("-").isdigit():
+        return int(vertex)
+    raise BakeError("A cache vertex index must be an integer.")
+
+def _cache_delta(delta):
+    if not isinstance(delta, (tuple, list)) or len(delta) != 3:
+        raise BakeError("A cache delta must be a (dx, dy, dz) triple.")
+    values = tuple(float(value) for value in delta)
+    if any(not math.isfinite(value) for value in values):
+        raise BakeError("A cache delta must be finite.")
+    return values
+
+def _validate_deltas(deltas):
+    if not isinstance(deltas, dict) or not deltas:
+        raise BakeError("At least one baked delta is required.")
+    cleaned = {}
+    for bone, vertices in deltas.items():
+        if not isinstance(vertices, dict) or not vertices:
+            raise BakeError("Baked deltas for bone '%s' must not be empty." % bone)
+        cleaned[str(bone)] = {_cache_vertex(vertex): _cache_delta(delta)
+                               for vertex, delta in vertices.items()}
+    return cleaned
+
+def _validate_target(target):
+    if not isinstance(target, dict):
+        raise BakeError("A morph target must be a dict.")
+    name = target.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise BakeError("A morph target needs a name.")
+    factor = target.get("factor")
+    if not isinstance(factor, (int, float)) or isinstance(factor, bool) \
+            or not math.isfinite(float(factor)):
+        raise BakeError("A morph target factor must be a finite number.")
+    return {"name": name, "factor": float(factor),
+            "deltas": _validate_deltas(target.get("deltas"))}
+
+def bake_morph_target(deltas, morph_name="flex", factor=1.0):
+    """Bake {bone: {vertex: (dx, dy, dz)}} into one named morph target.
+
+    Pure and bpy-free: the deltas are validated, deep-copied and scaled by
+    `factor`, and returned as {"name", "factor", "deltas"} with int vertex
+    keys and tuple deltas, ready for `export_cache`. Inputs are not mutated.
+    """
+    name = str(morph_name or "").strip()
+    if not name:
+        raise BakeError("A morph target needs a name.")
+    if not isinstance(factor, (int, float)) or isinstance(factor, bool) \
+            or not math.isfinite(float(factor)):
+        raise BakeError("A morph target factor must be a finite number.")
+    factor = float(factor)
+    cleaned = _validate_deltas(deltas)
+    scaled = {bone: {vertex: tuple(component * factor for component in delta)
+                     for vertex, delta in vertices.items()}
+              for bone, vertices in cleaned.items()}
+    return {"name": name, "factor": factor, "deltas": scaled}
+
+def export_cache(morph_targets):
+    """Serialize morph targets (from `bake_morph_target`) to a plain cache dict.
+
+    Accepts a single target dict or an iterable of them. The result holds
+    only JSON-safe values (str keys, list deltas, sorted bones/vertices) so
+    it can be written to disk unchanged; `import_cache` reads it back.
+    """
+    if isinstance(morph_targets, dict):
+        morph_targets = [morph_targets]
+    targets = [_validate_target(target) for target in (morph_targets or [])]
+    if not targets:
+        raise BakeError("At least one morph target is required.")
+    serialized = []
+    for target in targets:
+        serialized.append({
+            "name": target["name"],
+            "factor": target["factor"],
+            "deltas": {bone: {str(vertex): list(vertices[vertex])
+                              for vertex in sorted(vertices)}
+                       for bone, vertices in sorted(target["deltas"].items())},
+        })
+    return {"version": CACHE_FORMAT_VERSION, "targets": serialized}
+
+def import_cache(data):
+    """Restore morph targets from a cache dict made by `export_cache`.
+
+    Vertex keys go back to int and deltas to tuples, so the result matches
+    the `bake_morph_target` shape. Malformed data raises `BakeError`.
+    """
+    if not isinstance(data, dict) or data.get("version") != CACHE_FORMAT_VERSION:
+        raise BakeError("Unsupported morph cache version.")
+    targets = data.get("targets")
+    if not isinstance(targets, (list, tuple)) or not targets:
+        raise BakeError("The morph cache holds no targets.")
+    return [_validate_target(target) for target in targets]
+
+def roundtrip_check(deltas, morph_name="flex", factor=1.0):
+    """Bake, export, JSON-serialize and re-import `deltas`; report the drift.
+
+    Returns {"ok", "max_error", "target_count", "vertex_count"}: `ok` is
+    True when every delta survives the cache round trip within 1e-9.
+    """
+    import json
+    target = bake_morph_target(deltas, morph_name=morph_name, factor=factor)
+    cache = json.loads(json.dumps(export_cache(target)))
+    restored = import_cache(cache)[0]
+    max_error = 0.0
+    vertex_count = 0
+    for bone, vertices in target["deltas"].items():
+        for vertex, delta in vertices.items():
+            vertex_count += 1
+            other = restored["deltas"].get(bone, {}).get(vertex)
+            if other is None:
+                return {"ok": False, "max_error": float("inf"),
+                        "target_count": 1, "vertex_count": vertex_count}
+            max_error = max(max_error,
+                            max(abs(a - b) for a, b in zip(delta, other)))
+    ok = restored["name"] == target["name"] \
+        and restored["factor"] == target["factor"] and max_error <= 1e-9
+    return {"ok": ok, "max_error": max_error, "target_count": 1,
+            "vertex_count": vertex_count}
