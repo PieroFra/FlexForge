@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 78
+- righe totali: 81
 - simboli: 2
 - classi: 0
 
@@ -28,6 +28,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 |---|---|---|
 
 ## Metodi
+
+
+# INDEX AST — engine_budget.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 231
+- simboli: 9
+- classi: 2
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `BudgetError` | 21-22 | 0 |
+| `FLEXFORGE_OT_apply_budget` | 169-230 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_apply_budget` (169-230)
+
+- `execute`: 207-230
 
 
 # INDEX AST — export_gltf.py
@@ -72,7 +94,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 104
+- righe totali: 105
 - simboli: 3
 - classi: 0
 
@@ -332,7 +354,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 158
+- righe totali: 159
 - simboli: 4
 - classi: 1
 
@@ -340,13 +362,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 43-157 | 1 |
+| `FLEXFORGE_PT_main` | 43-158 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (43-157)
+### `FLEXFORGE_PT_main` (43-158)
 
-- `draw`: 52-157
+- `draw`: 52-158
 
 
 # INDEX AST — verify.py

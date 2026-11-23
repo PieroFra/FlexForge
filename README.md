@@ -6,11 +6,12 @@
 
 FlexForge is a Blender add-on that builds anatomical muscle systems on existing character rigs: it creates deformable muscle meshes, drives them from pose (bone stretch), manages their weight painting, bakes bounce, and exports engine-ready glTF/FBX for Godot and Unity.
 
-## Demo & 3-Step Workflow
+## Demo & 4-Step Workflow
 
 1. **Create & Bind** — open the FlexForge panel in the Sidebar (N-panel), pick a target rig and muscle preset, then *Create Muscle* and *Bind Muscles*. FlexForge generates the muscle mesh, helper bones and skinning automatically.
 2. **Pose & Adjust** — pose the rig: muscles contract and bulge driven by the armature (`drive_by_pose`). Tweak the *Muscle Bulge Controls* (bulge scale, directional bias, smoothing) until the flex looks right.
-3. **Bounce & Export** — run *Bake Skin Bounce* to bake the secondary motion onto the timeline, then *Export glTF/FBX* with the weight budget applied (max 4 influences) for Godot or Unity.
+3. **Apply Engine Budget** — run *Apply engine budget* to fit the character to the game budget for the chosen LOD: influences per vertex (max 4), baked shape keys and deform bones, with a readable report (`shape_keys=2/10 bones=5/60 within_budget=yes`).
+4. **Bounce & Export** — run *Bake Skin Bounce* to bake the secondary motion onto the timeline, then *Export glTF/FBX* with the weight budget applied (max 4 influences) for Godot or Unity.
 
 ## Current Limitations (Alpha)
 
@@ -31,6 +32,7 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 - Pose-driven muscle contraction with bulge controls (scale, taper, directional bias).
 - Muscle presets (biceps and more), custom bone picker, preset from active mesh.
 - Weight toolkit: **limit influences** (max 4), **weight transfer** (nearest-vertex with L/R mapping), **cleanup weights**, **mirror weights** (spatial X-axis mirroring), multi-rig bone aliases (`Bip01`, L/R).
+- **Engine budget first**: one button fits a character to the game budget per LOD (influences, shape keys, bones) with a readable report — no competitor does this as a primary feature.
 - Deformation verification, shape-key baking, skin bounce baking, one-click muscle cleanup.
 - glTF/FBX export with explicit mesh+armature selection and weight budget enforced before export.
 - Interface in English; minimum supported Blender version: 4.2.
