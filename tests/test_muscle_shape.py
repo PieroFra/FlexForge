@@ -152,6 +152,54 @@ def test_collision_report():
                      "skin_limit": []}, empty
 
 
+def test_rbf_weight():
+    assert muscle_shape.rbf_weight(0.0, 1.0) == 1.0
+    assert muscle_shape.rbf_weight(1.0, 1.0) == 0.0
+    assert muscle_shape.rbf_weight(2.0, 1.0) == 0.0
+    half = muscle_shape.rbf_weight(0.5, 1.0)
+    assert abs(half - 0.1875) < 1e-12, half  # (1-t)**4 * (4t+1) at t=0.5
+    raised = False
+    try:
+        muscle_shape.rbf_weight(0.0, 0.0)
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_pose_correction():
+    controls = [((0.0, 0.0), (1.0, 0.0)), ((2.0, 0.0), (0.0, 1.0))]
+    assert muscle_shape.pose_correction((0.0, 0.0), controls) == (1.0, 0.0)
+    assert muscle_shape.pose_correction((2.0, 0.0), controls) == (0.0, 1.0)
+    mid = muscle_shape.pose_correction((1.0, 0.0), controls, radius=2.0)
+    assert abs(mid[0] - 0.5) < 1e-9 and abs(mid[1] - 0.5) < 1e-9, mid
+    far = muscle_shape.pose_correction((10.0, 0.0), controls)
+    assert far == (0.0, 0.0), far
+    raised = False
+    try:
+        muscle_shape.pose_correction((0.0,), [])
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_apply_pose_correction():
+    base = {"muscle_biceps_01": {0: (0.1, 0.0, 0.0)}}
+    shape = {"muscle_biceps_01": {0: (0.0, 0.2, 0.0)}}
+    controls = [((0.0, 0.0), {"muscle_biceps_01": {0: (0.0, 0.0, 0.3)}})]
+    corrected = muscle_shape.apply_pose_correction(base, (0.0, 0.0), controls)
+    assert corrected == {"muscle_biceps_01": {0: (0.1, 0.0, 0.3)}}, corrected
+    assert base == {"muscle_biceps_01": {0: (0.1, 0.0, 0.0)}}, base
+    beyond = muscle_shape.apply_pose_correction(
+        base, (9.0, 0.0), controls, fallback_deltas=shape)
+    assert beyond == shape, beyond
+    no_controls = muscle_shape.apply_pose_correction(
+        base, (0.0, 0.0), [], fallback_deltas=shape)
+    assert no_controls == shape, no_controls
+    as_mapping = muscle_shape.apply_pose_correction(
+        base, (0.0, 0.0), dict(controls), fallback_deltas=shape)
+    assert as_mapping == corrected, as_mapping
+
+
 def _main():
     tests = [
         test_compute_rest_length,
@@ -162,6 +210,9 @@ def _main():
         test_check_collision_muscle_bone,
         test_skin_limit_check,
         test_collision_report,
+        test_rbf_weight,
+        test_pose_correction,
+        test_apply_pose_correction,
     ]
 
     passed = 0

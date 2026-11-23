@@ -54,10 +54,10 @@ def bone_radius(bone, fallback=DEFAULT_BONE_RADIUS):
     return max(usable) if usable else fallback
 
 def _subtract(point_a, point_b):
-    return (point_a[0] - point_b[0], point_a[1] - point_b[1], point_a[2] - point_b[2])
+    return tuple(value_a - value_b for value_a, value_b in zip(point_a, point_b))
 
 def _dot(point_a, point_b):
-    return point_a[0] * point_b[0] + point_a[1] * point_b[1] + point_a[2] * point_b[2]
+    return sum(value_a * value_b for value_a, value_b in zip(point_a, point_b))
 
 def _cross(point_a, point_b):
     return (point_a[1] * point_b[2] - point_a[2] * point_b[1],
@@ -437,3 +437,109 @@ def collision_report(muscle_segments, bone_segments=None, bone_radii=None,
         report["skin_limit"] = skin_limit_check(
             muscle_segments, vertex_coordinates, bone_radii, skin_limit)
     return report
+
+DEFAULT_POSE_RADIUS = 1.0
+
+def rbf_weight(distance, radius):
+    """Compact Wendland weight for a pose distance: 1 at 0, 0 at `radius`.
+
+    The weight decays smoothly as `(1 - t) ** 4 * (4 * t + 1)` with
+    `t = distance / radius`, so poses at `radius` or beyond contribute
+    nothing at all. Return the weight in [0, 1].
+    """
+    if not isinstance(distance, (int, float)) or distance < 0.0:
+        raise BakeError("The distance must be greater than or equal to 0.")
+    if not isinstance(radius, (int, float)) or radius <= 0.0:
+        raise BakeError("The radius must be greater than 0.")
+    if distance >= radius:
+        return 0.0
+    ratio = float(distance) / float(radius)
+    return (1.0 - ratio) ** 4 * (4.0 * ratio + 1.0)
+
+def pose_correction(pose, controls, radius=DEFAULT_POSE_RADIUS):
+    """Blended corrective vector for `pose` from control poses.
+
+    `controls` is a sequence of `(control_pose, correction)` pairs of
+    equal-length numeric tuples; each control contributes
+    `rbf_weight(distance(pose, control_pose), radius)` times its
+    correction, normalized by the total weight. A pose far from every
+    control (total weight zero) corrects nothing. Return the blended
+    correction tuple.
+    """
+    controls = list(controls)
+    if not controls:
+        raise BakeError("At least one control pose is required.")
+    if not isinstance(radius, (int, float)) or radius <= 0.0:
+        raise BakeError("The radius must be greater than 0.")
+    pose = tuple(float(value) for value in pose)
+    if not pose:
+        raise BakeError("The pose must not be empty.")
+    blended = None
+    total = 0.0
+    for control_pose, correction in controls:
+        control_pose = tuple(float(value) for value in control_pose)
+        correction = tuple(float(value) for value in correction)
+        if len(control_pose) != len(pose) or len(correction) != len(pose):
+            raise BakeError("Control pose and correction sizes must match the pose size.")
+        if blended is None:
+            blended = [0.0] * len(pose)
+        distance = _dot(_subtract(pose, control_pose),
+                        _subtract(pose, control_pose)) ** 0.5
+        weight = rbf_weight(distance, radius)
+        if weight <= 0.0:
+            continue
+        total += weight
+        for index, value in enumerate(correction):
+            blended[index] += weight * value
+    if blended is None or total <= EPS:
+        return tuple(0.0 for _ in pose)
+    return tuple(value / total for value in blended)
+
+def apply_pose_correction(base_deltas, pose, control_corrections,
+                          fallback_deltas=None, radius=DEFAULT_POSE_RADIUS):
+    """Add the blended pose correction to `base_deltas`, shape as fallback.
+
+    `control_corrections` is a sequence of `(control_pose, deltas)` pairs
+    (or a {control_pose: deltas} mapping) where `deltas` has the
+    {bone: {vertex: (dx, dy, dz)}} shape of the base deltas. When the
+    pose is far from every control, or no control is given, the shape
+    fallback is returned instead: `fallback_deltas` when provided, else
+    a copy of `base_deltas`. Missing entries count as zero deltas and
+    the inputs are never mutated. Return a new deltas dict.
+    """
+    source = fallback_deltas if fallback_deltas is not None else base_deltas
+    if hasattr(control_corrections, "items"):
+        control_corrections = list(control_corrections.items())
+    else:
+        control_corrections = list(control_corrections or [])
+    if not control_corrections:
+        return {bone: dict(vertices) for bone, vertices in dict(source).items()}
+    pose = tuple(float(value) for value in pose)
+    total = 0.0
+    blended = {}
+    for control_pose, deltas in control_corrections:
+        control_pose = tuple(float(value) for value in control_pose)
+        if len(control_pose) != len(pose):
+            raise BakeError("Control pose size must match the pose size.")
+        distance = _dot(_subtract(pose, control_pose),
+                        _subtract(pose, control_pose)) ** 0.5
+        weight = rbf_weight(distance, radius)
+        if weight <= 0.0:
+            continue
+        total += weight
+        for bone, vertices in dict(deltas).items():
+            for vertex, delta in dict(vertices).items():
+                entry = blended.setdefault(bone, {}).setdefault(
+                    vertex, [0.0, 0.0, 0.0])
+                for axis_index in range(3):
+                    entry[axis_index] += weight * float(delta[axis_index])
+    if total <= EPS:
+        return {bone: dict(vertices) for bone, vertices in dict(source).items()}
+    result = {bone: dict(vertices) for bone, vertices in dict(base_deltas or {}).items()}
+    for bone, vertices in blended.items():
+        for vertex, delta in vertices.items():
+            base = result.get(bone, {}).get(vertex, (0.0, 0.0, 0.0))
+            result.setdefault(bone, {})[vertex] = tuple(
+                float(base[axis_index]) + delta[axis_index] / total
+                for axis_index in range(3))
+    return result
