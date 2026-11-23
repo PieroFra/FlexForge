@@ -29,6 +29,7 @@ _OPERATOR_LABELS = {
     "Bind muscles": "Collega muscoli",
     "Bake shape keys": "Cottura shape key",
     "Bake skin bounce": "Cottura rimbalzo pelle",
+    "Clear muscles": "Pulisci muscoli",
     "Transfer weights": "Trasferisci pesi",
     "Clean weights": "Pulisci pesi",
     "Mirror weights": "Specchia pesi",

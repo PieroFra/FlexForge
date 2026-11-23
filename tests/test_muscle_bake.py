@@ -96,12 +96,29 @@ class _FakeShapeKey:
     def __init__(self, name, coordinates):
         self.name = name
         self.value = 0.0
+        self.slider_max = 1.0
+        self.id_properties = {}
         self.drivers = []
         self.drivers_removed = []
         self.data = [
             types.SimpleNamespace(co=tuple(coordinates[i]))
             for i in range(len(coordinates))
         ]
+
+    def __contains__(self, key):
+        return key in self.id_properties
+
+    def __getitem__(self, key):
+        return self.id_properties[key]
+
+    def __setitem__(self, key, value):
+        self.id_properties[key] = value
+
+    def get(self, key, default=None):
+        return self.id_properties.get(key, default)
+
+    def id_properties_ui(self, name):
+        return _FakeIdPropertiesUI(self.id_properties, name)
 
     def driver_remove(self, path):
         self.drivers_removed.append(path)
@@ -113,12 +130,26 @@ class _FakeShapeKey:
         return fcurve
 
 
+class _FakeIdPropertiesUI:
+    """Fake result of `id_properties_ui(name)` with the real `update()`."""
+
+    def __init__(self, properties, name):
+        self._properties = properties
+        self._name = name
+
+    def update(self, **settings):
+        self._properties.setdefault("__ui__%s" % self._name, {}).update(settings)
+        return dict(settings)
+
+
 class _FakeDriverTarget:
     """One target slot of a driver variable."""
 
     def __init__(self):
         self.id = None
+        self.id_type = "OBJECT"
         self.bone_target = ""
+        self.data_path = ""
 
 
 class _FakeDriverVariable:
@@ -163,6 +194,7 @@ class _FakeObject:
         self.type = "MESH"
         self.modifiers = []
         self.parent = None
+        self.id_properties = {}
         self.shape_keys_created = []
         names = []
         for weight_groups in weights_per_vertex.values():
@@ -196,6 +228,21 @@ class _FakeObject:
             names[index]: weight
             for index, weight in self.weights.get(vertex, {}).items()
         }
+
+    def __contains__(self, key):
+        return key in self.id_properties
+
+    def __getitem__(self, key):
+        return self.id_properties[key]
+
+    def __setitem__(self, key, value):
+        self.id_properties[key] = value
+
+    def get(self, key, default=None):
+        return self.id_properties.get(key, default)
+
+    def id_properties_ui(self, name):
+        return _FakeIdPropertiesUI(self.id_properties, name)
 
     def shape_key_add(self, name="Key", from_mix=False):
         coordinates = [tuple(vertex.co) for vertex in self.data.vertices]
@@ -1090,9 +1137,21 @@ def test_attach_pose_drivers_creates_rotation_diff():
     assert variable.targets[0].bone_target == "upper_arm.L"
     assert variable.targets[1].id is armature
     assert variable.targets[1].bone_target == "forearm.L"
+    # The user-editable bulge scale rides along as the second driver variable.
+    scale_variable = driver.variables[1]
+    assert scale_variable.name == "scale", scale_variable.name
+    assert scale_variable.type == "SINGLE_PROP", scale_variable.type
+    assert scale_variable.targets[0].id_type == "OBJECT"
+    assert scale_variable.targets[0].id is obj
+    assert scale_variable.targets[0].data_path == '["flexforge_biceps_scale"]', (
+        scale_variable.targets[0].data_path
+    )
+    # The scale is a custom property of the mesh, not of the shape key.
+    assert obj["flexforge_biceps_scale"] == 1.0, obj.id_properties
+    assert scale_variable.targets[0].id is not obj.data.shape_keys
     # Rest angle pi / 2 and the 1.5708 rad default, both with 6 decimals.
     assert driver.expression == (
-        "min(1.0, max(0.0, abs(ang - 1.570796) / 1.570800))"
+        "min(1.0, max(0.0, abs(ang - 1.570796) / 1.570800)) * scale"
     ), driver.expression
 
     # A second call replaces the driver instead of stacking another one.
@@ -1100,7 +1159,7 @@ def test_attach_pose_drivers_creates_rotation_diff():
     assert key.drivers_removed == ["value", "value"], key.drivers_removed
     assert len(key.drivers) == 1, key.drivers
     assert key.drivers[0].driver.expression == (
-        "min(1.0, max(0.0, abs(ang - 1.570796) / 1.000000))"
+        "min(1.0, max(0.0, abs(ang - 1.570796) / 1.000000)) * scale"
     ), key.drivers[0].driver.expression
     assert "drive_by_pose" in getattr(
         muscle_bake.FLEXFORGE_OT_bake_shape_keys, "__annotations__", {}
@@ -1334,6 +1393,116 @@ def test_directional_bias_favors_anatomical_side():
     assert "directional_bias" in annotations, annotations
 
 
+def test_pose_driver_exposes_editable_bulge_scale():
+    """The bulge ceiling is a per-key property, not a driver edit."""
+    from mathutils import Quaternion
+
+    armature_data = bpy.data.armatures.new("flexforge_scale_arm")
+    armature = bpy.data.objects.new("flexforge_scale_arm", armature_data)
+    bpy.context.scene.collection.objects.link(armature)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    origin_bone = armature_data.edit_bones.new("upper_arm.L")
+    origin_bone.head = (0.0, 0.0, 0.0)
+    origin_bone.tail = (0.0, 1.0, 0.0)
+    insertion_bone = armature_data.edit_bones.new("forearm.L")
+    insertion_bone.head = (0.0, 1.0, 0.0)
+    insertion_bone.tail = (0.0, 2.0, 0.0)
+    insertion_bone.parent = origin_bone
+    muscle_bone = armature_data.edit_bones.new("muscle_biceps_01")
+    muscle_bone.head = (0.0, 0.0, 0.0)
+    muscle_bone.tail = (0.0, 1.0, 0.0)
+    muscle_bone.parent = origin_bone
+    for bone in (origin_bone, insertion_bone, muscle_bone):
+        bone.head_radius = 0.4
+        bone.tail_radius = 0.4
+    bpy.ops.object.mode_set(mode="OBJECT")
+    constraint = armature.pose.bones["muscle_biceps_01"].constraints.new(
+        type="STRETCH_TO"
+    )
+    constraint.subtarget = "forearm.L"
+
+    mesh = bpy.data.meshes.new("flexforge_scale_mesh")
+    mesh.from_pydata([(0.1, 0.5, 0.0), (0.0, 0.25, 0.0)], [], [(0, 1)])
+    obj = bpy.data.objects.new("flexforge_scale_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    parent_group = obj.vertex_groups.new(name="upper_arm.L")
+    muscle_group = obj.vertex_groups.new(name="muscle_biceps_01")
+    parent_group.add([0], 0.5, "REPLACE")
+    muscle_group.add([0], 0.5, "REPLACE")
+    muscle_group.add([1], 1.0, "REPLACE")
+    modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+    modifier.object = armature
+
+    def refresh():
+        owner = obj.data.shape_keys
+        tag = getattr(owner, "update_tag", None)
+        if tag is not None:
+            tag()
+        bpy.context.view_layer.update()
+
+    def evaluated_value():
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated = obj.evaluated_get(depsgraph)
+        return evaluated.data.shape_keys.key_blocks["flexforge_biceps"].value
+
+    try:
+        report = muscle_bake.apply_muscle_bake(
+            obj, armature, strip_muscle_weights=False, drive_by_pose=True
+        )
+        assert report["drivers_added"] == 1, report
+        shape_keys = obj.data.shape_keys
+        key = shape_keys.key_blocks["flexforge_biceps"]
+        # Shape keys cannot hold ID properties: the scale is on the mesh.
+        assert "flexforge_biceps_scale" in obj, list(obj.keys())
+        assert abs(obj["flexforge_biceps_scale"] - 1.0) < 1e-6, (
+            obj["flexforge_biceps_scale"]
+        )
+        assert key.slider_max >= 3.0 - 1e-6, key.slider_max
+        assert obj["flexforge_biceps_scale"] >= 0.0, obj["flexforge_biceps_scale"]
+
+        driver = shape_keys.animation_data.drivers[0].driver
+        names = [variable.name for variable in driver.variables]
+        assert "scale" in names, names
+        scale_variable = driver.variables["scale"]
+        assert scale_variable.type == "SINGLE_PROP", scale_variable.type
+        target = scale_variable.targets[0]
+        assert target.id_type == "OBJECT", target.id_type
+        assert target.id == obj, target.id
+        assert target.data_path == '["flexforge_biceps_scale"]', target.data_path
+
+        # 90 degrees between origin and insertion saturates the angle term.
+        pose_bone = armature.pose.bones["forearm.L"]
+        pose_bone.rotation_mode = "QUATERNION"
+        pose_bone.rotation_quaternion = Quaternion((0.0, 0.0, 1.0), math.pi / 2.0)
+        refresh()
+        assert abs(evaluated_value() - 1.0) < 1e-4, evaluated_value()
+
+        # Rising the property scales the bake without touching the driver.
+        obj["flexforge_biceps_scale"] = 1.8
+        refresh()
+        assert abs(evaluated_value() - 1.8) < 1e-4, evaluated_value()
+        obj["flexforge_biceps_scale"] = 0.5
+        refresh()
+        assert abs(evaluated_value() - 0.5) < 1e-4, evaluated_value()
+        assert driver.expression.endswith(" * scale"), driver.expression
+    finally:
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.objects.remove(armature, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.armatures.remove(armature_data)
+
+
+def test_settings_drive_by_pose_defaults_true():
+    from flexforge import settings
+
+    annotations = getattr(settings.FlexForgeSettings, "__annotations__", {})
+    assert "drive_by_pose" in annotations, annotations
+    prop = annotations["drive_by_pose"]
+    assert prop.keywords["default"] is True, prop.keywords
+
+
 def _main():
     tests = [
         test_shape_key_name_for_bone,
@@ -1370,6 +1539,8 @@ def _main():
         test_anatomical_taper_spans_multi_segment_chain,
         test_directional_bias_favors_anatomical_side,
         test_apply_muscle_bake_smooth_iterations_blends_edges,
+        test_pose_driver_exposes_editable_bulge_scale,
+        test_settings_drive_by_pose_defaults_true,
     ]
 
     passed = 0
