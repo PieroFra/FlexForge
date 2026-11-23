@@ -85,12 +85,83 @@ def test_capsule_chain_points():
     assert raised
 
 
+def test_check_collision_muscle_muscle():
+    # Biceps (y=0) and triceps (x=0, y=1..3) stay 1 apart: with radius 0.1
+    # each all envelopes are disjoint, with radius 0.6 they overlap by 0.2.
+    assert muscle_shape.check_collision_muscle_muscle(SEGMENTS) == []
+    collisions = muscle_shape.check_collision_muscle_muscle(
+        SEGMENTS, {"muscle_biceps_01": 0.6, "muscle_triceps_01": 0.6})
+    assert len(collisions) == 1, collisions
+    assert collisions[0][0] == "flexforge_biceps", collisions
+    assert collisions[0][1] == "flexforge_triceps", collisions
+    assert abs(collisions[0][2] - 0.2) < 1e-6, collisions
+    raised = False
+    try:
+        muscle_shape.check_collision_muscle_muscle({})
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_check_collision_muscle_bone():
+    # A bone on the X axis overlaps the biceps, a far bone does not.
+    assert muscle_shape.check_collision_muscle_bone(
+        SEGMENTS, {"humerus": ((0.0, 0.0, 5.0), (1.0, 0.0, 5.0))}) == []
+    collisions = muscle_shape.check_collision_muscle_bone(
+        SEGMENTS, {"humerus": ((0.0, 0.1, 0.0), (1.0, 0.1, 0.0))},
+        {"muscle_biceps_01": 0.2, "muscle_biceps_02": 0.2, "humerus": 0.2})
+    assert len(collisions) == 1, collisions
+    assert collisions[0][0] == "flexforge_biceps", collisions
+    assert collisions[0][1] == "humerus", collisions
+    assert abs(collisions[0][2] - 0.3) < 1e-6, collisions
+    raised = False
+    try:
+        muscle_shape.check_collision_muscle_bone(SEGMENTS, {})
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_skin_limit_check():
+    vertices = {
+        0: (0.5, 0.0, 0.0),   # on the biceps segment
+        1: (0.5, 0.01, 0.0),  # within the 0.05 skin limit
+        2: (5.0, 5.0, 5.0),   # far from every muscle
+    }
+    assert muscle_shape.skin_limit_check(SEGMENTS, vertices) == [2]
+    assert muscle_shape.skin_limit_check(
+        SEGMENTS, vertices, skin_limit=10.0) == []
+    raised = False
+    try:
+        muscle_shape.skin_limit_check({}, vertices)
+    except muscle_shape.BakeError:
+        raised = True
+    assert raised
+
+
+def test_collision_report():
+    report = muscle_shape.collision_report(
+        SEGMENTS,
+        {"humerus": ((0.0, 0.0, 5.0), (1.0, 0.0, 5.0))},
+        vertex_coordinates={0: (0.5, 0.0, 0.0), 3: (9.0, 9.0, 9.0)})
+    assert report["muscle_muscle"] == [], report
+    assert report["muscle_bone"] == [], report
+    assert report["skin_limit"] == [3], report
+    empty = muscle_shape.collision_report(SEGMENTS)
+    assert empty == {"muscle_muscle": [], "muscle_bone": [],
+                     "skin_limit": []}, empty
+
+
 def _main():
     tests = [
         test_compute_rest_length,
         test_solve_length,
         test_preserve_volume,
         test_capsule_chain_points,
+        test_check_collision_muscle_muscle,
+        test_check_collision_muscle_bone,
+        test_skin_limit_check,
+        test_collision_report,
     ]
 
     passed = 0

@@ -15,6 +15,8 @@ DEFAULT_DISPLACEMENT = 0.05
 DEFAULT_BONE_RADIUS = 0.1
 MAX_DISPLACEMENT_RATIO = 0.3
 GEOMETRY_EPS = 1e-9
+# Skin thickness allowed above a muscle capsule before it counts as a gap.
+DEFAULT_SKIN_LIMIT = 0.05
 
 class BakeError(Exception):
     """Bake module domain error, with an English message."""
@@ -281,3 +283,157 @@ def capsule_chain_points(muscle_segments, bone_radii=None, steps_per_segment=8):
                 points.append(tuple(head[i] + axis[i] * factor for i in range(3)))
         chains[key] = points
     return chains
+
+def _segment_distance(point, head, tail):
+    """Distance between `point` and the (head, tail) segment in local space."""
+    axis = _subtract(tail, head)
+    axis_square = _dot(axis, axis)
+    if axis_square <= GEOMETRY_EPS ** 2:
+        return _dot(_subtract(point, head), _subtract(point, head)) ** 0.5
+    factor = _dot(_subtract(point, head), axis) / axis_square
+    factor = min(1.0, max(0.0, factor))
+    closest = tuple(head[i] + axis[i] * factor for i in range(3))
+    return _dot(_subtract(point, closest), _subtract(point, closest)) ** 0.5
+
+def _points_distance(point_a, point_b):
+    """Euclidean distance between two 3D points."""
+    return _dot(_subtract(point_a, point_b), _subtract(point_a, point_b)) ** 0.5
+
+def _segments_distance(head_a, tail_a, head_b, tail_b):
+    """Minimum distance between two segments, via sampled closest points."""
+    samples = 16
+    best = None
+    for index_a in range(samples + 1):
+        factor_a = index_a / float(samples)
+        point_a = tuple(head_a[i] + (tail_a[i] - head_a[i]) * factor_a
+                        for i in range(3))
+        for index_b in range(samples + 1):
+            factor_b = index_b / float(samples)
+            point_b = tuple(head_b[i] + (tail_b[i] - head_b[i]) * factor_b
+                            for i in range(3))
+            distance = _points_distance(point_a, point_b)
+            if best is None or distance < best:
+                best = distance
+    return best
+
+def _radii_for(bone_radii, name):
+    """Positive radius for `name` from `bone_radii`, else the default."""
+    radius = dict(bone_radii or {}).get(name, DEFAULT_BONE_RADIUS)
+    if not isinstance(radius, (int, float)) or radius <= 0.0:
+        return DEFAULT_BONE_RADIUS
+    return float(radius)
+
+def check_collision_muscle_muscle(muscle_segments, bone_radii=None):
+    """Pairs of muscles whose capsule envelopes overlap.
+
+    Two muscles collide when the minimum distance between any of their
+    segments is smaller than the sum of their envelope radii. The muscle
+    names are the `flexforge_*` shape key names, so segments of the same
+    muscle are never paired with each other. Return a sorted list of
+    (muscle_a, muscle_b, penetration) tuples.
+    """
+    if not muscle_segments:
+        raise BakeError("At least one muscle segment is required.")
+    groups = _muscle_groups(muscle_segments)
+    geometry = _segment_geometry(muscle_segments, dict(bone_radii or {}))
+    muscles = sorted(groups)
+    collisions = []
+    for index_a, muscle_a in enumerate(muscles):
+        for muscle_b in muscles[index_a + 1:]:
+            radius_a = max(_radii_for(bone_radii, bone)
+                           for bone in groups[muscle_a])
+            radius_b = max(_radii_for(bone_radii, bone)
+                           for bone in groups[muscle_b])
+            distance = min(
+                _segments_distance(geometry[a][0],
+                                   tuple(geometry[a][0][i] + geometry[a][1][i]
+                                         for i in range(3)),
+                                   geometry[b][0],
+                                   tuple(geometry[b][0][i] + geometry[b][1][i]
+                                         for i in range(3)))
+                for a in groups[muscle_a] for b in groups[muscle_b])
+            penetration = radius_a + radius_b - distance
+            if penetration > EPS:
+                collisions.append((muscle_a, muscle_b, penetration))
+    return collisions
+
+def check_collision_muscle_bone(muscle_segments, bone_segments, bone_radii=None):
+    """Pairs of muscle and bone whose capsule envelopes overlap.
+
+    `bone_segments` maps a bone name to (head, tail); `bone_radii` maps
+    either a muscle segment or a bone name to its envelope radius (the
+    default applies when missing). Two capsules collide when the minimum
+    distance between their segments is smaller than the sum of their radii.
+    Return a sorted list of (muscle, bone, penetration) tuples.
+    """
+    if not muscle_segments:
+        raise BakeError("At least one muscle segment is required.")
+    if not bone_segments:
+        raise BakeError("At least one bone segment is required.")
+    groups = _muscle_groups(muscle_segments)
+    geometry = _segment_geometry(muscle_segments, dict(bone_radii or {}))
+    collisions = []
+    for muscle in sorted(groups):
+        radius_muscle = max(_radii_for(bone_radii, bone)
+                            for bone in groups[muscle])
+        for bone_name in sorted(bone_segments):
+            head, tail = bone_segments[bone_name]
+            radius_bone = _radii_for(bone_radii, bone_name)
+            distance = min(
+                _segments_distance(
+                    geometry[bone][0],
+                    tuple(geometry[bone][0][i] + geometry[bone][1][i]
+                          for i in range(3)),
+                    tuple(head), tuple(tail))
+                for bone in groups[muscle])
+            penetration = radius_muscle + radius_bone - distance
+            if penetration > EPS:
+                collisions.append((muscle, bone_name, penetration))
+    return collisions
+
+def skin_limit_check(muscle_segments, vertex_coordinates, bone_radii=None,
+                     skin_limit=DEFAULT_SKIN_LIMIT):
+    """Vertices farther than `skin_limit` from every muscle capsule.
+
+    A vertex is reported when its distance to the nearest muscle segment
+    exceeds `skin_limit`, so loose skin is listed instead of silently
+    ignored. `vertex_coordinates` maps a vertex index to (x, y, z). Return
+    a sorted list of offending vertex indices.
+    """
+    if not muscle_segments:
+        raise BakeError("At least one muscle segment is required.")
+    if not isinstance(skin_limit, (int, float)) or skin_limit < 0.0:
+        raise BakeError("The skin limit must be greater than or equal to 0.")
+    geometry = _segment_geometry(muscle_segments, dict(bone_radii or {}))
+    offenders = []
+    for vertex, coordinates in dict(vertex_coordinates).items():
+        point = (coordinates[0], coordinates[1], coordinates[2])
+        nearest = min(
+            _segment_distance(point, head,
+                              tuple(head[i] + axis[i] for i in range(3)))
+            for head, axis, _square, _radius, _fallback in geometry.values())
+        if nearest > skin_limit:
+            offenders.append(vertex)
+    return sorted(offenders)
+
+def collision_report(muscle_segments, bone_segments=None, bone_radii=None,
+                     vertex_coordinates=None,
+                     skin_limit=DEFAULT_SKIN_LIMIT):
+    """Summary of every collision check for one muscle set.
+
+    Run muscle-muscle and muscle-bone collisions plus the skin limit check
+    when `vertex_coordinates` is given. Return
+    {muscle_muscle, muscle_bone, skin_limit} with the raw results of each
+    check (empty lists when a check is skipped).
+    """
+    report = {"muscle_muscle": check_collision_muscle_muscle(
+        muscle_segments, bone_radii),
+        "muscle_bone": [],
+        "skin_limit": []}
+    if bone_segments:
+        report["muscle_bone"] = check_collision_muscle_bone(
+            muscle_segments, bone_segments, bone_radii)
+    if vertex_coordinates is not None:
+        report["skin_limit"] = skin_limit_check(
+            muscle_segments, vertex_coordinates, bone_radii, skin_limit)
+    return report
