@@ -1,6 +1,6 @@
 # FlexForge
 
-**Status: Alpha (`v1.1.0`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
+**Status: Alpha (`v1.2.0`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
 
 ![CI](https://github.com/PieroFra/FlexForge/actions/workflows/ci.yml/badge.svg)
 
@@ -23,7 +23,7 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 
 | Channel | Status |
 | --- | --- |
-| Release (Alpha) | `v1.1.0` — usable, APIs and UI may still change |
+| Release (Alpha) | `v1.2.0` — usable, APIs and UI may still change |
 | Local tests & CI | 204/204 checks pass on Blender 4.2 and 5.2, Windows + Linux, plus Godot/Unity engine smoke tests |
 | Blender Extensions | Not yet published; package passes `extension validate` |
 
@@ -47,4 +47,4 @@ blender -b --factory-startup --python tests/test_bootstrap.py
 
 Run every `tests/test_*.py` file; the CI matrix (`.github/workflows/ci.yml`) runs them all on Blender 4.2.3 and 5.2.0, on Ubuntu and Windows, and additionally builds and validates the extension zip.
 
-Install from a build: edit the `dist/flexforge-1.1.0.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).
+Install from a build: edit the `dist/flexforge-1.2.0.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).
