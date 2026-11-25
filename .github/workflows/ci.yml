@@ -86,7 +86,7 @@ jobs:
           $text = Get-Content -Raw -LiteralPath 'flexforge/blender_manifest.toml'
           $match = [regex]::Match($text, '(?m)^version\s*=\s*"([^"]+)"')
           if (-not $match.Success) { throw 'version not found in flexforge/blender_manifest.toml' }
-          $match.Groups[1].Value >> $env:GITHUB_OUTPUT
+          "version=$($match.Groups[1].Value)" >> $env:GITHUB_OUTPUT
 
       - name: Install Linux dependencies
         run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0
