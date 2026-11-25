@@ -212,3 +212,39 @@ codice dell'addon: solo documentazione, CI e allineamento.
   `ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=final-20261125-01`.
 - Nota: il tag `v1.5.0` resta su `768a630` (il pacchetto non e' cambiato: i 4
   commit successivi sono solo documentazione e CI).
+
+
+## Bugfix 2026-11-25 (post-1.5.0)
+
+Due bug riparati dalla sessione post-release, piu' un terzo aperto. Versione
+invariata: **1.5.0**.
+
+- **Alias spine a due cifre** (`flexforge/weight_nomi.py`): i rig che scrivono le
+  spine come `Spine01`/`Spine02` non risolvevano alcun ancoraggio, quindi i
+  muscoli del torso non venivano creati. Causa radice: mancavano gli alias
+  `"Spine01" -> spine.001` e `"Spine02" -> spine.002` nella mappa nomi.
+- **Raggi capsula scala-invarianti** (`flexforge/muscle_skinning.py`,
+  `flexforge/muscle_capsule.py`): su una scena in metri i raggi delle capsule
+  venivano misurati in unita' di scena e non scalati dal `unit_scale`, quindi il
+  bind legava meno helper del dovuto. Causa radice: i raggi usavano distanze
+  assolute invece di essere normalizzati per `unit_scale`. In metri i pesi
+  restano identici a prima (`vertices_bound=15583`/`muscles_bound=13` prima e
+  dopo su scena ripulita).
+
+**Test nuovi (5):** `tests/test_alias_gap.py` (2 casi: alias spine a due cifre),
+`tests/test_skinning_scale.py` (3 casi: raggi capsula scala-invarianti).
+
+**Totale suite: `RISULTATO passati=261 falliti=0 totale=261`** su Blender 4.2.3 e
+5.2 (prima 256/256).
+
+**Gate (2026-11-25, task `skinfix-20261125-01`):**
+`ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=skinfix-20261125-01`;
+`ZIP_AUDIT_OK | sha256=9aa49cb0d06930827e8b9147e65d104a172b1fe1cbb4f784e217acd3cb8b4286 | files=29`.
+Pacchetto `dist/flexforge-1.5.0.zip` ricostruito: 29 file, 66153 byte (prima
+64874 byte, sha256 `e05a873e49404f0314023acc909b4dc386ab518773b36d644a27ecb6fc28d5ba`).
+
+**BUG 3 — APERTO:** il `bind` reale lega **13/44** helper su scena ripulita; il
+`muscles_bound=35` visto nei log era gonfiato da pesi preesistenti sulla mesh.
+I 31 helper non legati dipendono dal cap di raggio = 1/4 dello span dell'helper,
+che resta sotto la distanza helper->pelle; alzare il cap cambierebbe i pesi in
+metri e romperebbe 3 test pinnati: serve una decisione di design.
