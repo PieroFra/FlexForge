@@ -63,20 +63,37 @@ jobs:
           Write-Host "Suites failed: $fail"
           exit $fail
 
+      - name: Check versions
+        shell: pwsh
+        run: |
+          $py = if ($IsWindows) { "py" } else { "python3" }
+          $args = if ($IsWindows) { @("-3", "tools/scripts/check_versions.py") } else { @("tools/scripts/check_versions.py") }
+          & $py @args
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   package:
     needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $text = Get-Content -Raw -LiteralPath 'flexforge/blender_manifest.toml'
+          $match = [regex]::Match($text, '(?m)^version\s*=\s*"([^"]+)"')
+          if (-not $match.Success) { throw 'version not found in flexforge/blender_manifest.toml' }
+          $match.Groups[1].Value >> $env:GITHUB_OUTPUT
+
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0
+
       - name: Cache Blender
         uses: actions/cache@v4
         with:
           path: blender
           key: blender-5.2.0-ubuntu-latest
-
-      - name: Install Linux dependencies
-        run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0
 
       - name: Download Blender
         shell: pwsh
@@ -93,17 +110,19 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Get-ChildItem flexforge -Directory -Filter __pycache__ -Recurse | Remove-Item -Recurse -Force
-          Compress-Archive -Path flexforge -DestinationPath dist/flexforge-1.0.2.zip -Force
+          $zip = "dist/flexforge-${{ steps.ver.outputs.version }}.zip"
+          Compress-Archive -Path flexforge -DestinationPath $zip -Force
+          Write-Host "BUILD_OK | zip=$zip"
 
       - name: Validate extension
         shell: pwsh
         run: |
           $bl = "blender/blender-5.2.0-linux-x64/blender"
-          & $bl --command extension validate dist/flexforge-1.0.2.zip
+          $zip = "dist/flexforge-${{ steps.ver.outputs.version }}.zip"
+          & $bl --command extension validate $zip
           exit $LASTEXITCODE
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: flexforge-1.0.2
-          path: dist/flexforge-1.0.2.zip
+          name: flexforge-${{ steps.ver.outputs.version }}
+          path: dist/flexforge-${{ steps.ver.outputs.version }}.zip
