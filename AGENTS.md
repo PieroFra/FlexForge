@@ -177,3 +177,38 @@ Milestone A (“Rig Detection + One-Click Full-Body Preset”) è chiusa su rig 
   matrice CI (4.2.3 + 5.2.0, Ubuntu + Windows) è verificata su entrambi i Blender.
   Nota da tenere: una fixture a teste coincidenti non è un caso reale, ma è la ragione per
   cui non si deve mai "dimostrare" una feature su una riga sintetica degenere.
+
+
+## Chiusura CI e documentazione (2026-11-25)
+
+Chiusura della sessione su documentazione e workflow CI del branch
+`chore/standardize-and-gates` (repository gia' su GitHub). Nessuna modifica al
+codice dell'addon: solo documentazione, CI e allineamento.
+
+- `README.md` allineato al codice: rimosse le affermazioni false (nessuna mesh
+  muscolare generata, export solo glTF `.glb`, non FBX); aggiunto il bullet
+  Limitations "No muscle mesh is generated". Commit `a30ab41`.
+- Nuovo `docs/VIDEO_PIPELINE.md`: piano operativo della pipeline video
+  (blender-gui-capture / obs-screen-capture / ffmpeg, verifiche `gif_check.py`)
+  dichiarato esplicitamente come piano e NON come risultato. Nessun trailer,
+  video o GIF prodotto (vincolo utente). Commit `98c98fa`.
+- Tre bug veri del workflow CI trovati e chiusi, tutti rivelati dal fix
+  precedente dei test su Blender 4.2.3:
+  1. step "Check versions": su `ubuntu-latest` `python3` riceveva il path
+     troncato `'.../FlexForge/t'`. Causa radice: l'array condizionale di UN
+     elemento su Linux diventa una stringa scalare e `& $py @pyArgs` la splatta
+     carattere per carattere. Fix: due rami espliciti senza splat. Commit
+     `6179556`.
+  2. step "Read version" (job package): scriveva il valore nudo `1.5.0` su
+     `GITHUB_OUTPUT` -> "Invalid format '1.5.0'". Fix: forma `key=value`
+     (`version=...`). Commit `29e2574`. (Era mascherato dal fatto che il job
+     package saltava finche' i test erano rossi.)
+  3. un primo tentativo di fix (solo rename `$args`->`$pyArgs`, commit
+     `adfd00a`) NON era la causa: documentato come falso bersaglio, per non
+     ripetere l'errore.
+- Esito finale: CI 5/5 job verdi (ubuntu+windows x Blender 4.2.3/5.2.0 +
+  package), PR #1 mergeable/CLEAN, artifact `flexforge-1.5.0`, 63053 byte.
+  Gate locale (2026-11-25, HEAD `29e2574`):
+  `ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=final-20261125-01`.
+- Nota: il tag `v1.5.0` resta su `768a630` (il pacchetto non e' cambiato: i 4
+  commit successivi sono solo documentazione e CI).
