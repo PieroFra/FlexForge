@@ -25,7 +25,7 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 | Channel | Status |
 | --- | --- |
 | Release (Alpha) | `v1.5.0` — usable, APIs and UI may still change |
-| Local tests & CI | 255/255 checks pass on Blender 5.2, plus Godot/Unity engine smoke tests |
+| Local tests & CI | 256/256 checks pass on Blender 5.2, plus Godot/Unity engine smoke tests |
 | Blender Extensions | Not yet published; package passes `extension validate` |
 
 ## Features & Weight Toolkit
