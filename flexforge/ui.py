@@ -91,6 +91,9 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
                 op.origin_bone = settings.origin_bone
                 op.insertion_bone = settings.insertion_bone
                 op.segments = settings.segments
+        box.operator(
+            "flexforge.apply_full_body", text="Create full body", icon="MOD_SKIN"
+        )
         if settings is not None:
             box.prop(settings, "bind_radius")
         op_bind = box.operator(
@@ -150,6 +153,8 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
         box = layout.box()
         box.label(text="Validation & Export", icon="CHECKMARK")
         box.operator("flexforge.verify", text="Verify deformation", icon="CHECKMARK")
+        box.operator("flexforge.apply_budget", text="Apply engine budget", icon="CONSTRAINT_BONE")
+        box.operator("flexforge.detect_rig", text="Detect rig", icon="ARMATURE_DATA")
         box.operator("flexforge.export_gltf", text="Export glTF", icon="EXPORT")
 
         box = layout.box()

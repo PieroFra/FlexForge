@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 78
+- righe totali: 83
 - simboli: 2
 - classi: 0
 
@@ -28,6 +28,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 |---|---|---|
 
 ## Metodi
+
+
+# INDEX AST — engine_budget.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 231
+- simboli: 9
+- classi: 2
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `BudgetError` | 21-22 | 0 |
+| `FLEXFORGE_OT_apply_budget` | 169-230 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_apply_budget` (169-230)
+
+- `execute`: 207-230
 
 
 # INDEX AST — export_gltf.py
@@ -72,7 +94,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 104
+- righe totali: 106
 - simboli: 3
 - classi: 0
 
@@ -148,7 +170,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 133
+- righe totali: 140
 - simboli: 6
 - classi: 1
 
@@ -156,13 +178,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_bake_bounce` | 97-132 | 1 |
+| `FLEXFORGE_OT_bake_bounce` | 104-139 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_bake_bounce` (97-132)
+### `FLEXFORGE_OT_bake_bounce` (104-139)
 
-- `execute`: 109-132
+- `execute`: 116-139
 
 
 # INDEX AST — muscle_capsule.py
@@ -208,8 +230,8 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 66
-- simboli: 2
+- righe totali: 90
+- simboli: 3
 - classi: 0
 
 ## Classi
@@ -245,15 +267,15 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 208
-- simboli: 15
+- righe totali: 671
+- simboli: 38
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `BakeError` | 19-20 | 0 |
+| `BakeError` | 21-22 | 0 |
 
 ## Metodi
 
@@ -295,6 +317,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 - `execute`: 167-198
 
 
+# INDEX AST — rig_detect.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 218
+- simboli: 9
+- classi: 2
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `RigDetectError` | 18-19 | 0 |
+| `FLEXFORGE_OT_detect_rig` | 196-217 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_detect_rig` (196-217)
+
+- `execute`: 204-217
+
+
 # INDEX AST — settings.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
@@ -332,7 +376,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 152
+- righe totali: 160
 - simboli: 4
 - classi: 1
 
@@ -340,13 +384,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 42-151 | 1 |
+| `FLEXFORGE_PT_main` | 43-159 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (42-151)
+### `FLEXFORGE_PT_main` (43-159)
 
-- `draw`: 51-151
+- `draw`: 52-159
 
 
 # INDEX AST — verify.py

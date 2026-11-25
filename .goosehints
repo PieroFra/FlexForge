@@ -1,0 +1,82 @@
+# Regole di progetto per goose (agnostiche, nessuna dipendenza da OpenCode)
+
+Queste regole valgono in ogni repo Blender di questa macchina. Il file
+`AGENTS.md` nella radice del progetto resta la fonte primaria: leggilo prima
+di agire. Questo file ne e' il riassunto operativo.
+
+## Contesto hardware (solo Windows)
+- Host: Windows. Shell: PowerShell 5.1/7 (`powershell -NoProfile -ExecutionPolicy Bypass -File ...`).
+- CPU AMD Ryzen 9 9900X, GPU AMD RX 9070 XT 16 GB (RDNA4, gfx1201), 16 GB VRAM.
+- Modelli locali via llama.cpp ROCm su `127.0.0.1:11435` oppure Ollama su
+  `127.0.0.1:11434`. Un solo modello in VRAM alla volta: non lanciare due
+  sessioni locali in parallelo.
+- Id verificati il 2026-11-23 (llama.cpp): `nemotron-bolt-e4b-q8` (veloce),
+  `mimo-v2.6-9b-q8` (piu' ragionato), `spark-x2.6-4b-q4km` (Spark-X2.6 4B,
+  101 tok/s). `ornith-1.5-9b-q6k` e' nel preset ma non si carica.
+  `sensenova-loop-9b-q5km` gira su un server separato, porta 11436
+  (`E:\AI\llamacpp-sensenova\sensenova_service.ps1`): 4,6-7,1 tok/s, tool
+  calling OK, lento per fare l'agente.
+  In Ollama: `nemotron-bolt-e4b-q8:actd`, `mimo-v2.6-9b-q8:actd`.
+- Blender supportati: 4.2 LTS e 5.2 LTS. Nessun controllo sparso su
+  `bpy.app.version`: solo fallback espliciti tra le due API.
+
+## Regole non negoziabili
+1. **Un modulo alla volta.** Patch chirurgiche, mai riscritture del file intero.
+2. **Zero path assoluti hardcoded** nel codice, nei test, negli script di repo
+   e nei file di configurazione versionati. Usa percorsi relativi alla radice
+   del repo, `$env:TEMP` per gli scratch, variabili d'ambiente per i tool
+   esterni. I path assoluti sono ammessi solo in file locali non versionati.
+3. **Il verdetto lo da' il codice, non il modello.** Si riporta verbatim la
+   riga finale del comando di verifica: `VERIFY_OK | ...`, `VERIFY_FAIL | ...`,
+   `RISULTATO passati=X falliti=Y totale=N`, `flagged=0`. Mai PASS per
+   inferenza, mai un verdetto ricomposto a mano.
+4. **Mai indebolire un test** per farlo passare. Se il test fallisce per colpa
+   del codice, si corregge il codice. Se il test e' sbagliato nel merito, lo si
+   segnala, non lo si riscrive di nascosto.
+5. **Compatibilita' preset/UI:** nessuna proprieta' esposta nella UI o usata dai
+   preset viene rimossa o rinominata; l'ordine di registrazione resta invariato;
+   ogni `PropertyGroup` compare in `_classes` prima della classe che lo usa.
+6. **Packaging pulito:** l'artefatto installabile e' solo il pacchetto generato
+   dalla build (mai i sorgenti modificati a mano). `dist/`, `*.zip`, `*.rar`,
+   `__pycache__/`, `*.py[cod]` restano fuori da git.
+7. **Nessun segreto nei file:** API key e token mai in config, script, README o
+   test. Solo variabili d'ambiente o keyring. Nei template si usa `${ENV_VAR}`.
+8. **Un comando = una prova.** Non dichiarare chiuso un gate senza aver letto
+   l'exit code e la riga di verdetto del comando reale.
+
+## Ciclo di lavoro standard
+1. Leggi `AGENTS.md` e la tabella **Verifica** del repo. Se manca, fermati e
+   segnalalo: non improvvisare la struttura.
+2. Pianifica un solo modulo.
+3. Scrivi la patch (o il test che prima fallisce, poi la patch).
+4. Esegui il comando di verifica del repo dalla radice, con tag univoco se
+   previsto.
+5. Copia la riga finale verbatim nel report. Due fallimenti consecutivi per la
+   stessa causa: stop e diagnosi, non loop.
+6. Aggiorna documentazione e changelog solo a modulo verde.
+
+## Struttura tipica di un repo addon
+```
+<repo>/
+  <package>/            codice dell'addon (fonte di verita')
+  tests/                suite headless test_*.py
+  packaging/            build, manifest, release
+  docs/                 documentazione e immagini
+  dist/                 artefatti generati (ignorati da git)
+  AGENTS.md             regole del progetto
+  .goosehints           questo riassunto
+```
+
+Gli script di verifica possono essere in `scripts\` o in una cartella locale
+non versionata. Non assumere il percorso: leggi la tabella Verifica di
+`AGENTS.md`.
+
+## Stile
+- Commenti e docstring nella lingua del progetto (italiano per gli addon
+  esistenti, salvo diversa indicazione in `AGENTS.md`).
+- Nessuna dipendenza nuova non richiesta, nessun `print` di debug, nessun
+  refactoring opportunistico.
+- Messaggi e report brevi: file:righe, cosa e' cambiato, cosa resta da
+  verificare.
+  
+"5. Subagent obbligatori: ogni lavoro che richiede strumenti (script, gate, audit, test, revisione) va delegato a un subagent con istruzioni autosufficienti e con il file di contesto che serve. Non si esegue a mano. Se un sub fallisce o va in timeout, si riavvia con resume spezzando il compito."  

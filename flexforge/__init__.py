@@ -5,7 +5,7 @@
 bl_info = {
     "name": "FlexForge",
     "author": "FlexForge",
-    "version": (1, 0, 2),
+    "version": (1, 5, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > FlexForge",
     "description": "Muscles with helper bones, weights toolkit (transfer, cleanup, mirror) and glTF export for Godot and Unity.",
@@ -17,21 +17,26 @@ bl_info = {
 # deformation verification operator, export_gltf the .glb export operator,
 # weight_transfer the weight transfer operator between meshes,
 # weights_cleanup the weight cleanup operator, weights_mirror the weight
-# mirror operator between sides, muscle_presets the muscle preset operator,
+# mirror operator between sides, muscle_fullbody the full body preset operator,
+# muscle_presets the muscle preset operator,
 # muscle_skinning the muscle binding operator, muscle_bake the shape key
 # bake operator, muscle_bounce the skin bounce bake operator and muscle_clear
-# the cleanup operator of the muscle data.
+# the cleanup operator of the muscle data, engine_budget the engine budget
+# operator and rig_detect the rig detection operator.
 # settings holds the Scene PropertyGroup with the addon options,
 # i18n holds the it_IT translation catalogue (no class registered).
 from . import (
+    engine_budget,
     export_gltf,
     i18n,
     muscle,
     muscle_bake,
     muscle_bounce,
     muscle_clear,
+    muscle_fullbody,
     muscle_presets,
     muscle_skinning,
+    rig_detect,
     settings,
     ui,
     verify,
@@ -56,6 +61,9 @@ _CLASSES = (
     muscle_bake.FLEXFORGE_OT_bake_shape_keys,
     muscle_bounce.FLEXFORGE_OT_bake_bounce,
     muscle_clear.FLEXFORGE_OT_clear_muscles,
+    engine_budget.FLEXFORGE_OT_apply_budget,
+    rig_detect.FLEXFORGE_OT_detect_rig,
+    muscle_fullbody.FLEXFORGE_OT_apply_full_body,
 )
 
 

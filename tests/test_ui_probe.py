@@ -19,6 +19,7 @@ import flexforge  # noqa: E402
 
 OPERATOR_IDS = [
     "flexforge.create_muscle_preset",
+    "flexforge.apply_full_body",
     "flexforge.bind_muscles",
     "flexforge.bake_shape_keys",
     "flexforge.bake_bounce",
@@ -28,6 +29,8 @@ OPERATOR_IDS = [
     "flexforge.mirror_weights",
     "flexforge.limit_weights",
     "flexforge.verify",
+    "flexforge.apply_budget",
+    "flexforge.detect_rig",
     "flexforge.export_gltf",
     "flexforge.create_biceps",
 ]

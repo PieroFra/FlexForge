@@ -72,20 +72,22 @@ def test_bl_info_fields():
     info = flexforge.bl_info
     assert info["name"] == "FlexForge", info.get("name")
     assert tuple(info["blender"]) == (4, 2, 0), info.get("blender")
-    assert tuple(info["version"]) == (1, 0, 2), info.get("version")
+    assert tuple(info["version"]) == (1, 5, 0), info.get("version")
     assert info["category"] == "Rigging", info.get("category")
 
 
 def test_expected_classes():
     import flexforge
     assert isinstance(flexforge._CLASSES, tuple), "_CLASSES is not a tuple"
-    assert len(flexforge._CLASSES) == 13, (
-        "expected 13 classes (panel + muscle operator + weights operator"
+    assert len(flexforge._CLASSES) == 16, (
+        "expected 16 classes (panel + muscle operator + weights operator"
         " + verify operator + glTF export operator"
         " + weight transfer operator + weight cleanup operator"
         " + weight mirror operator + muscle preset operator"
         " + muscle binding operator + shape key bake operator"
-        " + skin bounce bake operator + clear muscles operator),"
+        " + skin bounce bake operator + clear muscles operator"
+        " + engine budget operator + rig detection operator"
+        " + full body operator),"
         " found %d: %s"
         % (len(flexforge._CLASSES), [c.bl_idname for c in flexforge._CLASSES])
     )
@@ -102,6 +104,9 @@ def test_expected_classes():
     assert flexforge._CLASSES[10].bl_idname == "flexforge.bake_shape_keys"
     assert flexforge._CLASSES[11].bl_idname == "flexforge.bake_bounce"
     assert flexforge._CLASSES[12].bl_idname == "flexforge.clear_muscles"
+    assert flexforge._CLASSES[13].bl_idname == "flexforge.apply_budget"
+    assert flexforge._CLASSES[14].bl_idname == "flexforge.detect_rig"
+    assert flexforge._CLASSES[15].bl_idname == "flexforge.apply_full_body"
 
 
 def test_sidebar_panel():
@@ -132,7 +137,7 @@ def test_register_unregister():
     # counter is used to tell a broken register from a working one.
     flexforge.register()
     if uses_stub:
-        assert len(bpy._registrate) == 13, "register() not registered with stub"
+        assert len(bpy._registrate) == 15, "register() not registered with stub"
     else:
         assert hasattr(bpy.types, "FLEXFORGE_PT_main"), (
             "register() did not register the panel in bpy.types"
@@ -148,7 +153,7 @@ def test_register_unregister():
     # case where the second pair of calls is a no-op.
     if uses_stub:
         flexforge.register()
-        assert len(bpy._registrate) == 13, "register() not registered with stub"
+        assert len(bpy._registrate) == 15, "register() not registered with stub"
         flexforge.unregister()
         assert len(bpy._registrate) == 0, "unregister() did not remove with stub"
 
@@ -158,7 +163,7 @@ def test_valid_manifest():
     data = outcome["data"]
     assert data.get("id") == "flexforge", data.get("id")
     assert data.get("name") == "FlexForge", data.get("name")
-    assert str(data.get("version")) == "1.0.2", data.get("version")
+    assert str(data.get("version")) == "1.5.0", data.get("version")
     assert str(data.get("blender_version_min")) == "4.2.0", data.get(
         "blender_version_min"
     )

@@ -1,9 +1,9 @@
-# Configurazione di verifica per FlexForge (letta da verify.ps1).
+﻿# Configurazione di verifica per FlexForge (letta da verify.ps1).
 @{
     Monolith      = 'flexforge\__init__.py'
     Sources       = @('flexforge')
-    Runner        = '.opencode\scripts\run_tests.ps1'
-    ExpectedTotal = 204
+    Runner        = 'tools\scripts\run_tests.ps1'
+    ExpectedTotal = 256
     DiffPaths     = @('flexforge', 'tests')
     IndexOutput   = 'INDEX.md'
 }
