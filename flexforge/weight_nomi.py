@@ -30,26 +30,26 @@ def invert_group_name(name):
 
 # Aliases of the standard bones, as authored by common rig conventions.
 _ALIASES_L = {
-    "upper_arm.L": ("DEF-upper_arm.L", "arm_stretch.l", "mixamorig:LeftArm",
+    "upper_arm.L": ("DEF-upper_arm.L", "DEF_UpperArm.L", "arm_stretch.l", "mixamorig:LeftArm",
                     "upperarm_l", "LeftUpperArm", "J_Bip_L_UpperArm",
                     "Bip01 L UpperArm"),
-    "forearm.L": ("DEF-forearm.L", "forearm_stretch.l",
+    "forearm.L": ("DEF-forearm.L", "DEF_ForeArm.L", "forearm_stretch.l",
                   "mixamorig:LeftForeArm", "lowerarm_l", "LeftLowerArm",
                   "J_Bip_L_LowerArm", "Bip01 L Forearm"),
-    "shoulder.L": ("DEF-shoulder.L", "mixamorig:LeftShoulder", "clavicle_l",
+    "shoulder.L": ("DEF-shoulder.L", "DEF_Shoulder.L", "mixamorig:LeftShoulder", "clavicle_l",
                    "LeftShoulder", "J_Bip_L_Shoulder", "Bip01 L Clavicle"),
     "thigh.L": ("DEF-thigh.L", "DEF_Leg.B.L", "DEF_Leg.L", "DEF_Hip.L",
                 "mixamorig:LeftUpLeg", "thigh_l", "LeftUpLeg",
                 "J_Bip_L_UpperLeg", "Bip01 L Thigh"),
-    "shin.L": ("DEF-shin.L", "DEF_ForeLeg.B.L", "DEF_Leg.L", "mixamorig:LeftLeg",
+    "shin.L": ("DEF-shin.L", "DEF_ForeLeg.B.L", "DEF_ForeLeg.L", "mixamorig:LeftLeg",
                "calf_l", "LeftLeg", "J_Bip_L_LowerLeg", "Bip01 L Calf"),
     "foot.L": ("DEF-foot.L", "DEF_Foot.L", "mixamorig:LeftFoot", "foot_l",
                "LeftFoot", "J_Bip_L_Foot", "Bip01 L Foot"),
     "spine": ("DEF_Spine.01", "DEF_Pelvis", "mixamorig:Spine", "spine_01",
               "J_Bip_C_Spine", "root", "Bip01 Spine", "Bip01 Pelvis"),
-    "spine.001": ("DEF_Spine.02", "mixamorig:Spine1", "spine_02",
+    "spine.001": ("DEF_Spine.02", "DEF_Spine.1", "mixamorig:Spine1", "spine_02",
                   "J_Bip_C_Chest", "Bip01 Spine1"),
-    "spine.002": ("DEF_Spine.03", "mixamorig:Spine2", "spine_03",
+    "spine.002": ("DEF_Spine.03", "DEF_Spine.2", "mixamorig:Spine2", "spine_03",
                   "J_Bip_C_UpperChest", "Bip01 Spine2"),
 }
 

@@ -21,9 +21,17 @@ Verifica su rig esterno reale (non committata: Mixamo non è redistribuibile):
 - `coverage 1.00` è 9/9 **ossa canoniche**, non 9/67 ossa del rig
 - `pectoral`, `latissimus`, `gluteus` hanno `origin_r == origin` (ossa centrali, specchio inerte): corretto, non un difetto
 - test offline: `tests\test_rig_detect.py` 10/10, con `_MIXAMO_NAMES` e `_MIXAMO_PARENTS`
-- gate: `ALL_GATES_OK | gates=4/4`, suite `RISULTATO passati=249 falliti=0 totale=249` (246 + 3 nuovi)
+- gate: `ALL_GATES_OK | gates=4/4`, suite `RISULTATO passati=250 falliti=0 totale=250` (249 + 1 nuovo)
 
-Ancora aperto: ARP (`DEF-*`) e Bip01 su rig reali — non esistono per me lecito da scaricare, servono dal tuo archivio.
+Verifica su rig reale Auto-Rig Pro (2026-11-25): `SpaceDwarf_Rigging_BYPEFFO2_NEW.blend` (tuo, 16.913.986 byte), copiato in `%TEMP%\flexforge_rigtest\SpaceDwarf.blend` — l'originale non è stato toccato e il file resta fuori dal repo. Blender 5.2.0 LTS headless: `detect_rig` -> `rig_type=standard`, `matched 9`, `missing 0`, `coverage 1.00`, `topology_ok=true` (6 link), 9/9 preset disponibili.
+
+Due difetti trovati dal rig e corretti in `weight_nomi.py`:
+- `shin.L` puntava a `DEF_Leg.L`, lo stesso osso di `thigh.L`: quadriceps e hamstring venivano creati con `origin == insertion`. Ora usa `DEF_ForeLeg.L`.
+- mancavano le grafie di questo rig (`DEF_UpperArm.L`, `DEF_ForeArm.L`, `DEF_Shoulder.L`, `DEF_Spine.1`, `DEF_Spine.2`), una variante diversa da `DEF-upper_arm.L` che avevo previsto.
+
+Il test di regressione `test_arp_leg_aliases_no_collision` fissa il caso.
+
+Ancora aperto: Bip01 su rig reali.
 
 ## Struttura codice
 

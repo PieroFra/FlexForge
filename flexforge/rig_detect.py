@@ -34,7 +34,7 @@ for _preset_id, _spec in MUSCLE_PRESETS.items():
 _TOPOLOGY_EXPECTATIONS = {
     "upper_arm.L": ("shoulder.L",),
     "forearm.L": ("upper_arm.L",),
-    "shoulder.L": ("spine", "spine.001"),
+    "shoulder.L": ("spine", "spine.001", "spine.002"),
     "spine": (),
     "spine.001": ("spine",),
     "spine.002": ("spine.001",),

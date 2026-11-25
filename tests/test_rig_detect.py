@@ -177,11 +177,44 @@ def test_detect_topology_without_parents():
     assert len(report["preset_ids"]) == 9, report
 
 
+def test_arp_leg_aliases_no_collision():
+    names = [
+        "DEF_Pelvis", "DEF_Spine", "DEF_Spine.1", "DEF_Spine.2", "DEF_Chest",
+        "DEF_Shoulder.L", "DEF_UpperArm.L", "DEF_ForeArm.L",
+        "DEF_Leg.L", "DEF_ForeLeg.L", "DEF_Foot.L",
+    ]
+    parents = {
+        "DEF_Pelvis": "",
+        "DEF_Spine": "DEF_Pelvis",
+        "DEF_Spine.1": "DEF_Spine",
+        "DEF_Spine.2": "DEF_Spine.1",
+        "DEF_Chest": "DEF_Spine.2",
+        "DEF_Shoulder.L": "DEF_Spine.2",
+        "DEF_UpperArm.L": "DEF_Shoulder.L",
+        "DEF_ForeArm.L": "DEF_UpperArm.L",
+        "DEF_Leg.L": "DEF_Pelvis",
+        "DEF_ForeLeg.L": "DEF_Leg.L",
+        "DEF_Foot.L": "DEF_ForeLeg.L",
+    }
+    report = rig_detect.detect_rig(names, parents)
+    assert report["rig_type"] == "standard", report
+    assert report["coverage"] == 1.0, report
+    assert len(report["preset_ids"]) == 9, report
+    assert report["topology_ok"] is True, report
+    assert report["matched_bones"]["thigh.L"] == "DEF_Leg.L", report
+    assert report["matched_bones"]["shin.L"] == "DEF_ForeLeg.L", report
+    quadriceps = rig_detect.resolved_bones_for_preset("quadriceps", names)
+    assert quadriceps["origin"] != quadriceps["insertion"], quadriceps
+    assert quadriceps["origin"] == "DEF_Leg.L", quadriceps
+    assert quadriceps["insertion"] == "DEF_ForeLeg.L", quadriceps
+
+
 def _main():
     tests = [
         test_detect_topology_ok,
         test_detect_topology_rejects_wrong_chain,
         test_detect_topology_without_parents,
+        test_arp_leg_aliases_no_collision,
         test_detect_standard,
         test_detect_mixamo,
         test_detect_bip01,
