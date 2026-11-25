@@ -142,3 +142,26 @@ Milestone A (“Rig Detection + One-Click Full-Body Preset”) è chiusa su rig 
 - **Release 1.5.0**: `bl_info` e `blender_manifest.toml` a 1.5.0, README aggiornato (flusso 5 passi, rig detection, “Not yet published”), `dist/flexforge-1.5.0.zip` = 29 file, 64874 byte, sha256 `e05a873e49404f0314023acc909b4dc386ab518773b36d644a27ecb6fc28d5ba`; `blender --command extension validate` exit 0; gate 4/4 (`ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=release-1.5.0-01`), suite `RISULTATO passati=256 falliti=0 totale=256`.
 - **Ancora aperto**: Bip01 mai testato su un rig Bip01 reale (le alias ci sono in `weight_nomi.py`). Pubblicazione su Extensions/Blender Artists/Reddit: pianificata, non ancora fatta (utente ha chiesto prima un piano di pubblicazione).
 
+## Release 1.5.0 - repo e promo chiuse (2026-11-25)
+
+- `docs/PROMO.md` riscritto da 1.0.0 a 1.5.0: short description, thread Blender Artists, post
+  Reddit e checklist. La promo porta i numeri misurati dal progetto (9 presets, 44 helper,
+  350 -> 394 ossa, 0,02 s, 256/256) e dice in modo esplicito che "Create full body" crea i
+  chain helper e non mesh né pesi: `Bind muscles` è un passaggio separato.
+- `docs/PUBLICATION_PLAN.md` resta il piano a 3 fasi (Extensions -> Blender Artists -> Reddit).
+  Nessun trailer o video di marketing.
+- Repo GitHub: la CI è stata portata su `.github/workflows/ci.yml` con job di packaging
+  version-aware - legge `version` da `flexforge/blender_manifest.toml`, costruisce
+  `dist/flexforge-<v>.zip` invece del nome flesso `flexforge-1.0.2.zip`, valida l'estensione
+  e carica l'artifact - e un passo `Check versions` che confronta `bl_info` e manifest.
+  Modifica sul branch `chore/standardize-and-gates`.
+- `tools/verify.config.psd1`: `ExpectedTotal` portato da 246 a 256 (era stantio rispetto ai
+  256 test reali della release).
+- Gate su `chore/standardize-and-gates` dopo la promo, eseguito il 2026-11-25:
+
+  `ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=promo-repo-20261125-01`
+
+  Suite `RISULTATO passati=256 falliti=0 totale=256`; `INSTALL_OK | zip=flexforge-1.5.0.zip`;
+  `ZIP_AUDIT_OK | sha256=e05a873e49404f0314023acc909b4dc386ab518773b36d644a27ecb6fc28d5ba |
+  files=29`. Il sha256 del pacchetto non cambia rispetto al release: solo documentazione e CI
+  sono stati toccati, il codice del pacchetto resta identico.
