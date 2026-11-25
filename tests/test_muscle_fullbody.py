@@ -130,6 +130,30 @@ def test_operator_registered():
     )
 
 
+# Head of every bone of the Mixamo fixture, spread along the body. A real rig
+# does not stack every head on the origin, and a helper bone whose head and
+# tail coincide is dropped when Edit Mode is left on Blender 4.2 (5.2 keeps it),
+# so the synthetic rig also has to keep the muscle chains non-degenerate.
+_MIXAMO_HEADS = {
+    "mixamorig:Hips": (0.0, 0.0, 0.0),
+    "mixamorig:Spine": (0.0, 0.0, 1.0),
+    "mixamorig:Spine1": (0.0, 0.0, 2.0),
+    "mixamorig:Spine2": (0.0, 0.0, 3.0),
+    "mixamorig:LeftUpLeg": (0.0, -1.0, 0.0),
+    "mixamorig:LeftLeg": (0.0, -1.0, -1.0),
+    "mixamorig:LeftFoot": (0.0, -1.0, -2.0),
+    "mixamorig:LeftShoulder": (0.2, 0.5, 2.5),
+    "mixamorig:LeftArm": (0.2, 0.9, 2.5),
+    "mixamorig:LeftForeArm": (0.2, 1.3, 2.4),
+    "mixamorig:RightUpLeg": (0.0, 1.0, 0.0),
+    "mixamorig:RightLeg": (0.0, 1.0, -1.0),
+    "mixamorig:RightFoot": (0.0, 1.0, -2.0),
+    "mixamorig:RightShoulder": (-0.2, 0.5, 2.5),
+    "mixamorig:RightArm": (-0.2, 0.9, 2.5),
+    "mixamorig:RightForeArm": (-0.2, 1.3, 2.4),
+}
+
+
 def _make_mixamo_armature(parents):
     """Create a real Mixamo rig in Object Mode, ready for the operator."""
     import bpy
@@ -145,11 +169,12 @@ def _make_mixamo_armature(parents):
         bpy.ops.object.mode_set(mode="OBJECT")
     bpy.ops.object.mode_set(mode="EDIT")
     for name, parent_name in parents.items():
+        head = _MIXAMO_HEADS.get(name, (0.0, 0.0, 0.0))
         parent = rig_data.edit_bones.get(parent_name) if parent_name else None
         bone = rig_data.edit_bones.new(name)
         bone.parent = parent
-        bone.head = (0.0, 0.0, 0.0)
-        bone.tail = (0.0, 0.0, 1.0)
+        bone.head = head
+        bone.tail = (head[0], head[1], head[2] + 1.0)
     bpy.ops.object.mode_set(mode="OBJECT")
     return rig
 

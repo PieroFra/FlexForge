@@ -165,3 +165,15 @@ Milestone A (“Rig Detection + One-Click Full-Body Preset”) è chiusa su rig 
   `ZIP_AUDIT_OK | sha256=e05a873e49404f0314023acc909b4dc386ab518773b36d644a27ecb6fc28d5ba |
   files=29`. Il sha256 del pacchetto non cambia rispetto al release: solo documentazione e CI
   sono stati toccati, il codice del pacchetto resta identico.
+- Repo GitHub: PR #1 (`chore/standardize-and-gates` -> `main`) aperta il 2026-11-25 con tag
+  `v1.5.0`. La merge di `main` è senza conflitti di contenuto (i suoi commit CI erano già
+  riapplicati); il pacchetto non cambia.
+- **Corretto un fallimento vero della matrice CI su Blender 4.2.3**: la suite
+  `test_muscle_fullbody` falliva con `AssertionError: muscle_biceps_01` perché la fixture
+  `_make_mixamo_armature` metteva tutti i teste degli osso a `(0,0,0)`: le catene di muscolo
+  risultavano a lunghezza zero e il Blender 4.2.3 **scarta** un edit bone con head e tail
+  coincidenti quando si esce da Edit Mode (il 5.2 lo conserva). Fixture corretta con teste
+  distinte lungo il corpo; la suite 256/256 passa ora sia su 4.2.3 sia su 5.2.0, quindi la
+  matrice CI (4.2.3 + 5.2.0, Ubuntu + Windows) è verificata su entrambi i Blender.
+  Nota da tenere: una fixture a teste coincidenti non è un caso reale, ma è la ragione per
+  cui non si deve mai "dimostrare" una feature su una riga sintetica degenere.
