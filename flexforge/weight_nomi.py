@@ -48,9 +48,9 @@ _ALIASES_L = {
     "spine": ("DEF_Spine.01", "DEF_Pelvis", "mixamorig:Spine", "spine_01",
               "J_Bip_C_Spine", "root", "Bip01 Spine", "Bip01 Pelvis"),
     "spine.001": ("DEF_Spine.02", "DEF_Spine.1", "mixamorig:Spine1", "spine_02",
-                  "J_Bip_C_Chest", "Bip01 Spine1"),
+                  "J_Bip_C_Chest", "Bip01 Spine1", "Spine01"),
     "spine.002": ("DEF_Spine.03", "DEF_Spine.2", "mixamorig:Spine2", "spine_03",
-                  "J_Bip_C_UpperChest", "Bip01 Spine2"),
+                  "J_Bip_C_UpperChest", "Bip01 Spine2", "Spine02"),
 }
 
 # Canonical names plus their R counterparts, each with its own alias list.

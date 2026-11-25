@@ -84,7 +84,8 @@ def _chain_length(head, tail):
     """Endpoint span of one helper capsule, never a max over the whole chain."""
     return _distance(head, tail)
 
-def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0):
+def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0,
+                    unit_scale=1.0):
     """Cap a reported envelope radius on the helper span it belongs to.
 
     A rig that reports a body-sized envelope (0.1) on a 0.0063 helper wraps the
@@ -99,21 +100,28 @@ def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0):
     distance) binds no vertex and is raised to the mesh floor instead. The
     floor is a lower bound, never a second cap: minting it into the span cap
     kept the radius at 0.0016-0.0032 on the inner quadriceps helpers and only
-    the biceps reached the skin. The floor only applies to tiny-scale meshes: on
-    a human-scale mesh a quarter of the diagonal would blow the capsule past the
-    neighbouring limb, so there the span cap alone stands.
+    the biceps reached the skin. The floor only applies to tiny-scale meshes (a
+    mesh at a metre scale, checked after `unit_scale`): on a human-scale mesh a
+    quarter of the diagonal would blow the capsule past the neighbouring limb,
+    so there the span cap alone stands.
+    `radius`, `length`, `chain_length` and `mesh_diagonal` are all expressed in
+    the mesh-local unit; `unit_scale` is the metre-to-mesh-local factor, used
+    only to compare the `DEFAULT_RADIUS` ceiling and the mesh scale against
+    their metre-based references, so the cap is unchanged when the mesh is in
+    metres (`unit_scale == 1.0`).
     Degenerate segments keep their radius, so the `capsule_weight` error stays
     explicit.
     """
     length = _distance(head, tail)
     if length <= EPS:
         return radius
-    if radius > DEFAULT_RADIUS:
+    scale = unit_scale if unit_scale > 0.0 else 1.0
+    if radius > DEFAULT_RADIUS * scale:
         return radius
     capped = min(radius, 0.5 * length)
     if chain_length > EPS:
         capped = min(capped, 0.25 * chain_length)
-    if mesh_diagonal > 0.0 and mesh_diagonal < 0.5:
+    if mesh_diagonal > 0.0 and mesh_diagonal / scale < 0.5:
         return min(radius, max(capped, 0.25 * mesh_diagonal))
     return capped
 
@@ -156,12 +164,20 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
                            intensity=DEFAULT_INTENSITY,
                            max_influences=MAX_INFLUENCES_DEFAULT,
                            bone_masks=None, exclude_tokens=None,
-                           mesh_diagonal=0.0):
+                           mesh_diagonal=0.0, unit_scale=1.0):
     """Bind the `muscle_*` capsules on the vertices and report the result.
 
     `muscle_segments` is {muscle_name: (head, tail)} or a dict with the local
     `head_local`/`tail_local`, the global fallback and the bone envelope
-    `radius`, which wins over `radius` when smaller. `bone_masks` maps a muscle
+    `radius` (in mesh-local units), which wins over `radius` when smaller.
+    `radius` and `intensity` follow the operator: `radius` is expressed in
+    metres (the default 0.15 m) and is converted to the mesh-local unit by
+    `unit_scale` (metres-to-mesh-local, 1.0 for a metre mesh): a centimetre GLB
+    import (object scale 0.01, `unit_scale == 100.0`) would otherwise compare a
+    metre-based default with coordinates 100x larger and bind nothing. The
+    `DEFAULT_RADIUS` ceiling and the mesh-scale floor keep their metre-based
+    reference through the same factor, so a metre rig (`unit_scale == 1.0`) is
+    bit-for-bit unchanged. `bone_masks` maps a muscle
     `mesh_diagonal` is the local bounding-box diagonal of the mesh: it lifts
     the quarter-span cap on a body-sized mesh so a hair-thin helper still
     reaches the skin (0.0 keeps the cap on the helper span alone).
@@ -180,24 +196,29 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
     preserved: the helpers only fill the spare budget slots.
     Return {vertices, vertices_bound, muscles_bound, weights}.
     """
+    scale = unit_scale if unit_scale > 0.0 else 1.0
+    radius_local = float(radius) * scale
     segments = {}
     for name, value in dict(muscle_segments).items():
         head, tail = _segment_of(value)
         capsule = value.get("radius") if isinstance(value, dict) else None
         if not isinstance(capsule, (int, float)) or capsule <= 0.0:
-            capsule = radius
+            capsule = radius_local
         # A radius the user raised above the default is an explicit Bind radius:
         # it wins over the bone envelope (`min` kept it at the 0.1 default and
         # the span cap then dropped it to nothing, cancelling the Bind radius).
+        # The comparison stays on the metre-valued `radius`, the maths run on
+        # the mesh-local `radius_local`.
         if radius > DEFAULT_RADIUS:
-            effective = float(radius)
+            effective = radius_local
         else:
-            effective = min(radius, float(capsule))
+            effective = min(radius_local, float(capsule))
         segments[str(name)] = (head, tail, effective,
                                _capsule_side(value, head, tail))
     segments = {
         name: (head, tail, _capsule_radius(
-            capsule, head, tail, _chain_length(head, tail), mesh_diagonal), side)
+            capsule, head, tail, _chain_length(head, tail), mesh_diagonal,
+            scale), side)
         for name, (head, tail, capsule, side) in segments.items()
     }
     masks = {str(name): _mask_vertices(existing_weights, set(owners))

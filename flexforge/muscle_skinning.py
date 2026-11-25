@@ -62,6 +62,30 @@ def _matrix_point(matrix, point):
     from mathutils import Vector
     return tuple(matrix @ Vector(tuple(point)))
 
+def _mesh_unit_scale(obj):
+    """Mesh-local units per metre: `1 / world scale`, or 1.0 without a matrix.
+
+    The default capsule radii are authored in metres, while a GLB/FBX import in
+    centimetres keeps its coordinates 100x larger and carries `scale=0.01`: a
+    0.1 m default then reads as 1 mm on the centimetre mesh and binds nothing.
+    This factor brings the metre-based defaults into the mesh-local unit. A
+    metre rig (the usual case, and every fake object without a world matrix)
+    returns 1.0, so its result is unchanged.
+    """
+    world = getattr(obj, "matrix_world", None)
+    if world is None:
+        return 1.0
+    scale = max(abs(value) for value in world.to_scale()) or 1.0
+    return 1.0 / scale
+
+def _reported_bone_radius(bone):
+    """True when the rest bone carries an explicit envelope radius."""
+    return any(
+        isinstance(getattr(bone, key, None), (int, float))
+        and getattr(bone, key) > 0.0
+        for key in ("head_radius", "tail_radius")
+    )
+
 def _parent_owner(bone):
     """Nearest non-muscle ancestor of a helper (its origin bone), or ''."""
     parent = getattr(bone, "parent", None)
@@ -95,7 +119,16 @@ def _mesh_diagonal(coordinates):
 def apply_muscle_skinning(obj, armature=None, radius=DEFAULT_RADIUS,
                           intensity=DEFAULT_INTENSITY,
                           max_influences=MAX_INFLUENCES_DEFAULT):
-    """Create the missing `muscle_*` groups, skin the mesh and write weights."""
+    """Create the missing `muscle_*` groups, skin the mesh and write weights.
+
+    `radius` and `intensity` are the operator values: `radius` is expressed in
+    metres (the 0.15 m default) and, like the metre-based default bone envelope,
+    is converted into the mesh-local unit through the mesh world scale, so a
+    rig imported in centimetres (object scale 0.01) binds the same vertices as
+    the same rig in metres. A rest bone that reports its own `head_radius`/
+    `tail_radius` keeps them, converted from armature-local to mesh-local by the
+    armature-to-mesh matrix.
+    """
     if obj is None or getattr(obj, "type", None) != "MESH":
         raise SkinningError("An active mesh is required: select it first.")
     if radius <= 0.0:
@@ -106,6 +139,7 @@ def apply_muscle_skinning(obj, armature=None, radius=DEFAULT_RADIUS,
         raise SkinningError("An armature is required: add an Armature modifier.")
 
     matrix, scale = _armature_to_mesh_matrix(obj, armature)
+    unit_scale = _mesh_unit_scale(obj)
     bones = list(armature.data.bones)
     segments = {}
     bone_masks = {}
@@ -114,8 +148,15 @@ def apply_muscle_skinning(obj, armature=None, radius=DEFAULT_RADIUS,
             head, tail = _bone_segment(bone)
             if matrix is not None:
                 head, tail = _matrix_point(matrix, head), _matrix_point(matrix, tail)
+            envelope = bone_radius(bone) * scale if _reported_bone_radius(bone) else 0.0
+            # A default envelope reported by an importer (0.1 on a rig whose
+            # local unit is the centimetre) is 1 mm of real skin: the capsule is
+            # never thinner than the metre-based default expressed in the mesh
+            # unit, so a centimetre rig reaches the skin while a metre rig keeps
+            # the same 0.1 (`max(0.1, 0.1)`).
+            envelope = max(envelope, DEFAULT_BONE_RADIUS * unit_scale)
             segment = {"head_local": head, "tail_local": tail,
-                       "radius": bone_radius(bone) * scale}
+                       "radius": envelope}
             if is_torso_bone(_parent_owner(bone)):
                 segment["side_filter"] = True
             segments[bone.name] = segment
@@ -133,7 +174,7 @@ def apply_muscle_skinning(obj, armature=None, radius=DEFAULT_RADIUS,
     report = compute_muscle_weights(
         read_weights(obj), coordinates, segments, radius, intensity,
         max_influences, bone_masks, FOOT_EXCLUDE_TOKENS,
-        _mesh_diagonal(coordinates),
+        _mesh_diagonal(coordinates), unit_scale,
     )
     write_weights(obj, report["weights"])
     return report
