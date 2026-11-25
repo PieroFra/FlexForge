@@ -17,7 +17,8 @@ bl_info = {
 # deformation verification operator, export_gltf the .glb export operator,
 # weight_transfer the weight transfer operator between meshes,
 # weights_cleanup the weight cleanup operator, weights_mirror the weight
-# mirror operator between sides, muscle_presets the muscle preset operator,
+# mirror operator between sides, muscle_fullbody the full body preset operator,
+# muscle_presets the muscle preset operator,
 # muscle_skinning the muscle binding operator, muscle_bake the shape key
 # bake operator, muscle_bounce the skin bounce bake operator and muscle_clear
 # the cleanup operator of the muscle data, engine_budget the engine budget
@@ -32,6 +33,7 @@ from . import (
     muscle_bake,
     muscle_bounce,
     muscle_clear,
+    muscle_fullbody,
     muscle_presets,
     muscle_skinning,
     rig_detect,
@@ -61,6 +63,7 @@ _CLASSES = (
     muscle_clear.FLEXFORGE_OT_clear_muscles,
     engine_budget.FLEXFORGE_OT_apply_budget,
     rig_detect.FLEXFORGE_OT_detect_rig,
+    muscle_fullbody.FLEXFORGE_OT_apply_full_body,
 )
 
 

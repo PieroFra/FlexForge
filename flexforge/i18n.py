@@ -37,6 +37,7 @@ _OPERATOR_LABELS = {
     "Verify deformation": "Verifica deformazione",
     "Apply engine budget": "Applica budget motore",
     "Detect rig": "Rileva rig",
+    "Create full body": "Crea corpo intero",
     "Export glTF": "Esporta glTF",
 }
 

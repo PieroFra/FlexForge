@@ -19,6 +19,7 @@ import flexforge  # noqa: E402
 
 OPERATOR_IDS = [
     "flexforge.create_muscle_preset",
+    "flexforge.apply_full_body",
     "flexforge.bind_muscles",
     "flexforge.bake_shape_keys",
     "flexforge.bake_bounce",

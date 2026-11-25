@@ -79,14 +79,15 @@ def test_bl_info_fields():
 def test_expected_classes():
     import flexforge
     assert isinstance(flexforge._CLASSES, tuple), "_CLASSES is not a tuple"
-    assert len(flexforge._CLASSES) == 15, (
-        "expected 15 classes (panel + muscle operator + weights operator"
+    assert len(flexforge._CLASSES) == 16, (
+        "expected 16 classes (panel + muscle operator + weights operator"
         " + verify operator + glTF export operator"
         " + weight transfer operator + weight cleanup operator"
         " + weight mirror operator + muscle preset operator"
         " + muscle binding operator + shape key bake operator"
         " + skin bounce bake operator + clear muscles operator"
-        " + engine budget operator + rig detection operator),"
+        " + engine budget operator + rig detection operator"
+        " + full body operator),"
         " found %d: %s"
         % (len(flexforge._CLASSES), [c.bl_idname for c in flexforge._CLASSES])
     )
@@ -105,6 +106,7 @@ def test_expected_classes():
     assert flexforge._CLASSES[12].bl_idname == "flexforge.clear_muscles"
     assert flexforge._CLASSES[13].bl_idname == "flexforge.apply_budget"
     assert flexforge._CLASSES[14].bl_idname == "flexforge.detect_rig"
+    assert flexforge._CLASSES[15].bl_idname == "flexforge.apply_full_body"
 
 
 def test_sidebar_panel():

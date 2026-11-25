@@ -91,6 +91,9 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
                 op.origin_bone = settings.origin_bone
                 op.insertion_bone = settings.insertion_bone
                 op.segments = settings.segments
+        box.operator(
+            "flexforge.apply_full_body", text="Create full body", icon="MOD_SKIN"
+        )
         if settings is not None:
             box.prop(settings, "bind_radius")
         op_bind = box.operator(
