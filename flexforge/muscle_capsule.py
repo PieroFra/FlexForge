@@ -12,6 +12,15 @@ from .weights import (
 
 DEFAULT_RADIUS = 0.15
 DEFAULT_INTENSITY = 0.5
+# Coverage floor: the capsule must reach the skin it binds, so its radius is at
+# least this factor times the distance from the helper axis to the nearest
+# masked skin vertex. The mesh surface is a shell at the skin distance, so the
+# factor has to put that shell at a real falloff: 1.1 leaves the nearest skin
+# vertex at 0.008 (a graze that binds nothing useful), 1.9 puts it at ~0.22,
+# the order the helpers whose span cap already reached the skin showed (calf:
+# a 0.050 cap on a 0.022 skin, ~2.2x). Measured on the 168k asset: 13 -> 34
+# helpers bound, with zero opposite-side weight.
+SKIN_REACH_FACTOR = 1.9
 # Envelope radius used when a rest bone does not report one.
 DEFAULT_BONE_RADIUS = 0.1
 # Bones that never take a leg muscle capsule: the quadriceps helper stops at the
@@ -85,7 +94,7 @@ def _chain_length(head, tail):
     return _distance(head, tail)
 
 def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0,
-                    unit_scale=1.0):
+                    unit_scale=1.0, skin_distance=None):
     """Cap a reported envelope radius on the helper span it belongs to.
 
     A rig that reports a body-sized envelope (0.1) on a 0.0063 helper wraps the
@@ -104,11 +113,22 @@ def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0,
     mesh at a metre scale, checked after `unit_scale`): on a human-scale mesh a
     quarter of the diagonal would blow the capsule past the neighbouring limb,
     so there the span cap alone stands.
-    `radius`, `length`, `chain_length` and `mesh_diagonal` are all expressed in
-    the mesh-local unit; `unit_scale` is the metre-to-mesh-local factor, used
-    only to compare the `DEFAULT_RADIUS` ceiling and the mesh scale against
-    their metre-based references, so the cap is unchanged when the mesh is in
-    metres (`unit_scale == 1.0`).
+    `skin_distance` (mesh-local) is the distance from the helper axis to the
+    nearest vertex the capsule may weight (its bone mask, on the right side):
+    the capsule must reach the skin, so the radius is raised to
+    `SKIN_REACH_FACTOR * skin_distance`, never above the effective `radius`
+    (the reported muscle envelope, itself capped by the `DEFAULT_RADIUS`
+    ceiling: a muscle thinner than its own skin distance keeps its envelope and
+    binds nothing, and no capsule can cross to a neighbouring body part). This
+    is a floor over the span/mesh cap, and it only widens: a vertex on another
+    body part is far beyond `SKIN_REACH_FACTOR * skin_distance`, so it never
+    takes the muscle weight. `None` (or a non-positive `skin_distance`) keeps
+    the span/mesh cap alone.
+    `radius`, `length`, `chain_length`, `mesh_diagonal` and `skin_distance` are
+    all expressed in the mesh-local unit; `unit_scale` is the
+    metre-to-mesh-local factor, used only to compare the `DEFAULT_RADIUS`
+    ceiling and the mesh scale against their metre-based references, so the cap
+    is unchanged when the mesh is in metres (`unit_scale == 1.0`).
     Degenerate segments keep their radius, so the `capsule_weight` error stays
     explicit.
     """
@@ -122,8 +142,11 @@ def _capsule_radius(radius, head, tail, chain_length, mesh_diagonal=0.0,
     if chain_length > EPS:
         capped = min(capped, 0.25 * chain_length)
     if mesh_diagonal > 0.0 and mesh_diagonal / scale < 0.5:
-        return min(radius, max(capped, 0.25 * mesh_diagonal))
-    return capped
+        capped = min(radius, max(capped, 0.25 * mesh_diagonal))
+    if skin_distance is None or skin_distance <= EPS:
+        return capped
+    reach = min(SKIN_REACH_FACTOR * skin_distance, radius)
+    return max(capped, reach)
 
 def _preserve_skeletal(weights, max_influences):
     """Keep the bone influences: the helpers only fill the spare budget slots.
@@ -180,7 +203,13 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
     bit-for-bit unchanged. `bone_masks` maps a muscle
     `mesh_diagonal` is the local bounding-box diagonal of the mesh: it lifts
     the quarter-span cap on a body-sized mesh so a hair-thin helper still
-    reaches the skin (0.0 keeps the cap on the helper span alone).
+    reaches the skin (0.0 keeps the cap on the helper span alone). On top of
+    that cap every helper gets a coverage floor: the radius is raised to
+    `SKIN_REACH_FACTOR` times the distance from its axis to the nearest vertex
+    it may weight (its mask, on the right side), up to the `DEFAULT_RADIUS`
+    ceiling, so a short helper whose span cap sits inside the skin still binds
+    its own surface. The floor only widens a capsule, never redirects it, so a
+    vertex of another body part (far beyond the reach) keeps its bone weight.
     `bone_masks` maps a muscle to its origin/insertion bones: only the
     vertices weighted on them get the capsule, so the helper cannot bleed on
     the body (an unweighted
@@ -215,12 +244,6 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
             effective = min(radius_local, float(capsule))
         segments[str(name)] = (head, tail, effective,
                                _capsule_side(value, head, tail))
-    segments = {
-        name: (head, tail, _capsule_radius(
-            capsule, head, tail, _chain_length(head, tail), mesh_diagonal,
-            scale), side)
-        for name, (head, tail, capsule, side) in segments.items()
-    }
     masks = {str(name): _mask_vertices(existing_weights, set(owners))
              for name, owners in dict(bone_masks or {}).items()}
     masks = {name: allowed for name, allowed in masks.items() if allowed}
@@ -233,6 +256,29 @@ def compute_muscle_weights(existing_weights, vertex_coordinates,
         for name in segments:
             allowed = masks.get(name, universe)
             masks[name] = allowed - (excluded - owned.get(name, set()))
+    # Coverage floor: measure, per helper, the distance from its axis to the
+    # nearest vertex it may weight (the mask, on the right side), so the capsule
+    # reaches the skin. The span cap alone left short helpers off the skin and
+    # they bound no vertex; the floor widens them just past their own skin.
+    skins = {}
+    for name, (head, tail, capsule, side) in segments.items():
+        allowed = masks.get(name)
+        nearest = None
+        for index, coordinate in enumerate(vertex_coordinates):
+            if allowed is not None and index not in allowed:
+                continue
+            if not passes_side(coordinate, head, side):
+                continue
+            distance = segment_distance(coordinate, head, tail)
+            if nearest is None or distance < nearest:
+                nearest = distance
+        skins[name] = nearest
+    segments = {
+        name: (head, tail, _capsule_radius(
+            capsule, head, tail, _chain_length(head, tail), mesh_diagonal,
+            scale, skins.get(name)), side)
+        for name, (head, tail, capsule, side) in segments.items()
+    }
     combined = {}
     for index, coordinate in enumerate(vertex_coordinates):
         groups = dict(existing_weights.get(index, {}))
