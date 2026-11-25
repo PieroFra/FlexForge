@@ -67,8 +67,8 @@ jobs:
         shell: pwsh
         run: |
           $py = if ($IsWindows) { "py" } else { "python3" }
-          $args = if ($IsWindows) { @("-3", "tools/scripts/check_versions.py") } else { @("tools/scripts/check_versions.py") }
-          & $py @args
+          $pyArgs = if ($IsWindows) { @("-3", "tools/scripts/check_versions.py") } else { @("tools/scripts/check_versions.py") }
+          & $py @pyArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   package:
