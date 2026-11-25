@@ -212,8 +212,17 @@ def detect_message(report):
     )
 
 
+def full_body_message(report, segments, presets):
+    """Report line of the full body operator: detection plus what was created."""
+    message = detect_message(report)
+    if not presets:
+        return message
+    return "%s | created %d bones on %d presets" % (
+        message, segments, len(presets))
+
+
 def apply_full_body(obj, report, armature=None, mirror_lr=True):
-    """Create and bind every available preset of a detected rig.
+    """Create every available preset of a detected rig.
 
     Reuses create_preset_muscles/setup_preset_constraints via
     muscle_presets. Presets are only created when their origin/insertion
@@ -221,7 +230,7 @@ def apply_full_body(obj, report, armature=None, mirror_lr=True):
     bone_names); the mesh weights are not written here: binding
     (muscle_skinning) is a separate, already tested step. Must be called
     in Edit Mode when armature is given. Returns
-    {created, report, message}.
+    {created, segments, report, message}.
     """
     from .muscle_presets import create_preset_muscles, setup_preset_constraints
 
@@ -237,22 +246,26 @@ def apply_full_body(obj, report, armature=None, mirror_lr=True):
         }
     created = []
     chains = []
+    segments = 0
     for preset_id in report["preset_ids"]:
         resolved = resolved_bones_for_preset(preset_id, bone_names, mirror_lr)
         origin = resolved["origin"]
         insertion = resolved["insertion"]
         if origin not in bone_names or insertion not in bone_names:
             continue
-        chains.extend(
-            create_preset_muscles(armature, preset_id, mirror_lr=mirror_lr)
+        created_chains = create_preset_muscles(
+            armature, preset_id, mirror_lr=mirror_lr
         )
+        chains.extend(created_chains)
         created.append(preset_id)
+        segments += sum(len(names) for _, names in created_chains)
     if chains:
         setup_preset_constraints(armature, chains)
     return {
         "created": created,
+        "segments": segments,
         "report": report,
-        "message": detect_message(report),
+        "message": full_body_message(report, segments, created),
     }
 
 

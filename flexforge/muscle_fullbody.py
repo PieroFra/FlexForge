@@ -12,6 +12,7 @@ from .rig_detect import (
     apply_full_body,
     detect_message,
     detect_rig,
+    full_body_message,
 )
 
 NO_PRESETS = "FlexForge - rig: no presets available on this rig"
@@ -75,6 +76,17 @@ class FLEXFORGE_OT_apply_full_body(bpy.types.Operator):
             self.report({"ERROR"}, "Cannot return to Edit Mode")
             return {"CANCELLED"}
 
-        print(result["message"])
-        self.report({"INFO"}, result["message"])
+        created = len(result.get("created", ()))
+        presets = result.get("created", ())
+        message = full_body_message(
+            result["report"], result.get("segments", 0), presets
+        )
+        if created == 0 and report["preset_ids"]:
+            self.report(
+                {"ERROR"}, "No muscle preset could be created on this rig."
+            )
+            return {"CANCELLED"}
+
+        print(message)
+        self.report({"INFO"}, message)
         return {"FINISHED"}

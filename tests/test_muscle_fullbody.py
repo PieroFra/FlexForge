@@ -186,11 +186,31 @@ def test_operator_execute():
             bpy.data.armatures.remove(rig_data)
 
 
+def test_full_body_message_counts_created():
+    report = {
+        "rig_type": "standard",
+        "coverage": 1.0,
+        "matched": 9,
+        "missing": 0,
+        "preset_ids": ["biceps", "triceps"],
+        "topology_ok": None,
+        "topology_checked": 0,
+        "topology_bad": [],
+        "matched_bones": {},
+    }
+    message = muscle_fullbody.full_body_message(report, 4, ["biceps", "triceps"])
+    assert message.startswith("FlexForge - rig: type=standard"), message
+    assert "created 4 bones on 2 presets" in message, message
+    empty = muscle_fullbody.full_body_message(report, 0, [])
+    assert "created" not in empty, empty
+
+
 def _main():
     tests = [
         test_operator_definition,
         test_apply_full_body_no_presets,
         test_detect_rig_mixamo_nine_presets,
+        test_full_body_message_counts_created,
         test_operator_registered,
         test_operator_execute,
     ]

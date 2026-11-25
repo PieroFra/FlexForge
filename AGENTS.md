@@ -130,3 +130,15 @@ Il runner headless e l'Engine smoke test (Godot) sono oggi le uniche verifiche c
 4. Il `coder` scrive codice e test; `ops` tiene allineati documenti e specchio Drive.
   
 "5. **Subagent obbligatori**: ogni lavoro che richiede strumenti (script, gate, audit, test, revisione) va delegato a un subagent con istruzioni autosufficienti e con il file di contesto che serve. Non si esegue a mano. Se un sub fallisce o va in timeout, si riavvia con `resume` spezzando il compito, non si ripete il tentativo."  
+
+## Milestone A chiusa — release 1.5.0 (2026-11-25)
+
+Milestone A (“Rig Detection + One-Click Full-Body Preset”) è chiusa su rig reali e l'addon è a **1.5.0**.
+
+- **Nuovo operatore** `flexforge.apply_full_body` (`flexforge/muscle_fullbody.py`, pulsante “Create full body” nel box *Muscle Workflow*): crea in un solo click i chain helper di **tutte** le preset che risolvono sull'armatura attiva, con `mirror_lr`, ripristino selezione/mode e report `FlexForge - rig: type=standard ... presets=biceps,... | created 44 bones on 9 presets`.
+- **`rig_detect.apply_full_body`** ora espone `segments` e usa `full_body_message()`: prima restituiva solo `detect_message`, quindi l'utente non sapeva se qualcosa era stato creato. Test `test_full_body_message_counts_created` in `tests/test_muscle_fullbody.py`.
+- **Verifica su rig reale (SpaceDwarf_Rigging_BYPEFFO2_NEW.blend, copiata in `%TEMP%`, originale non toccato)**: `detect_rig` -> `rig_type=standard`, matched 9/9, coverage 1.00, 9 preset; `apply_full_body` -> `{'FINISHED'}`, armature **350 -> 394 ossa** (44 helper create), 0,02 s. Verifica eseguita con headless Blender 5.2, script `verify_fullbody.py` in `%TEMP%\flexforge_rigtest\`.
+- **Verifica su rig Mixamo (sintetica in test)**: 9 preset x L/R -> `created 44 bones on 9 presets`, `{'FINISHED'}`, mode e selezione ripristinati.
+- **Release 1.5.0**: `bl_info` e `blender_manifest.toml` a 1.5.0, README aggiornato (flusso 5 passi, rig detection, “Not yet published”), `dist/flexforge-1.5.0.zip` = 29 file, 64874 byte, sha256 `e05a873e49404f0314023acc909b4dc386ab518773b36d644a27ecb6fc28d5ba`; `blender --command extension validate` exit 0; gate 4/4 (`ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.0.zip | task=release-1.5.0-01`), suite `RISULTATO passati=256 falliti=0 totale=256`.
+- **Ancora aperto**: Bip01 mai testato su un rig Bip01 reale (le alias ci sono in `weight_nomi.py`). Pubblicazione su Extensions/Blender Artists/Reddit: pianificata, non ancora fatta (utente ha chiesto prima un piano di pubblicazione).
+

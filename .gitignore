@@ -1,5 +1,6 @@
 _esperimenti/
 .opencode/
+_VIDEO_STUDIO/
 __pycache__/
 *.pyc
 *.pyo

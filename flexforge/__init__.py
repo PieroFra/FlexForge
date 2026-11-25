@@ -5,7 +5,7 @@
 bl_info = {
     "name": "FlexForge",
     "author": "FlexForge",
-    "version": (1, 2, 0),
+    "version": (1, 5, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > FlexForge",
     "description": "Muscles with helper bones, weights toolkit (transfer, cleanup, mirror) and glTF export for Godot and Unity.",
