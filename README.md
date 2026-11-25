@@ -1,6 +1,6 @@
 # FlexForge
 
-**Status: Alpha (`v1.5.0`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
+**Status: Alpha (`v1.5.1`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
 
 ![CI](https://github.com/PieroFra/FlexForge/actions/workflows/ci.yml/badge.svg)
 
@@ -19,14 +19,14 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 - **Bounce is baked to the timeline**, not live: secondary motion only appears after baking, not while dragging a pose in real time.
 - **Linked meshes** (library overrides / linked data) require *Make Local* before baking shape keys.
 - **No muscle mesh is generated**: FlexForge builds helper bones and skins the mesh you already have.
-- **Blender Extensions** listing is pending: the `v1.5.0` package validates with `blender --command extension validate`, but it is not published on extensions.blender.org yet.
+- **Blender Extensions** listing is pending: the `v1.5.1` package validates with `blender --command extension validate`, but it is not published on extensions.blender.org yet.
 
 ## Status: Alpha vs Local Tests vs Blender Extensions
 
 | Channel | Status |
 | --- | --- |
-| Release (Alpha) | `v1.5.0` — usable, APIs and UI may still change |
-| Local tests & CI | 261/261 checks pass on Blender 5.2, plus Godot/Unity engine smoke tests |
+| Release (Alpha) | `v1.5.1` — usable, APIs and UI may still change |
+| Local tests & CI | 266/266 checks pass on Blender 5.2, plus Godot/Unity engine smoke tests |
 | Blender Extensions | Not yet published; package passes `extension validate` |
 
 ## Features & Weight Toolkit
@@ -50,4 +50,4 @@ blender -b --factory-startup --python tests/test_bootstrap.py
 
 Run every `tests/test_*.py` file; the CI matrix (`.github/workflows/ci.yml`) runs them all on Blender 4.2.3 and 5.2.0, on Ubuntu and Windows, and additionally builds and validates the extension zip.
 
-Install from a build: edit the `dist/flexforge-1.5.0.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).
+Install from a build: edit the `dist/flexforge-1.5.1.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).

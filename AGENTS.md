@@ -1,4 +1,4 @@
-﻿# AGENTS.md Ã¢â‚¬â€ FlexForge
+# AGENTS.md Ã¢â‚¬â€ FlexForge
 
 ## Stato del progetto
 
@@ -248,3 +248,38 @@ Pacchetto `dist/flexforge-1.5.0.zip` ricostruito: 29 file, 66153 byte (prima
 I 31 helper non legati dipendono dal cap di raggio = 1/4 dello span dell'helper,
 che resta sotto la distanza helper->pelle; alzare il cap cambierebbe i pesi in
 metri e romperebbe 3 test pinnati: serve una decisione di design.
+
+## Release 1.5.1 (2026-11-25)
+
+Release 1.5.1 chiude il BUG 3 aperto in 1.5.0: il `bind` reale legava 13/44
+helper. Causa radice: il raggio della capsula era cappato a 1/4 dello span
+dell'helper, e sui helper corti quel cap resta sotto la distanza helper->pelle,
+quindi la capsula non raggiungeva la superficie da pesare. Fix in
+`flexforge/muscle_capsule.py`: un coverage-floor alza il raggio a
+`SKIN_REACH_FACTOR` (1.9) volte la distanza dall'asse dell'helper al vertice
+piu' vicino che puo' pesare (la sua bone mask, sul lato giusto), ma mai oltre
+il raggio effettivo dell'envelope (tetto `DEFAULT_RADIUS`). La formula e'
+`radius = max(span_cap, min(1.9 * skin_distance, radius_eff))`; il percorso
+vecchio resta invariato quando `skin_distance` e' assente.
+
+- **Evidenza (scena reale ripulita, Blender 5.2):** il bind passa da
+  `muscles_bound=13` a **34** (`vertices_bound` 15583 -> **45505**); niente
+  bleeding: `high_pairs w>0.3 = 0`, `opposite_side = 0`.
+- **Test nuovi (5):** `tests/test_muscle_coverage.py` (lo span cap da solo
+  lascia l'helper corto fuori dalla pelle; l'helper corto raggiunge la pelle; il
+  reach si ferma appena oltre la pelle; nessun bleeding sull'altro lato;
+  coverage scala-invariante). Aggiornati i due pin di versione in
+  `tests/test_bootstrap.py` a 1.5.1.
+- **Totale suite: `RISULTATO passati=266 falliti=0 totale=266`** su Blender
+  4.2.3 e 5.2 (prima 261/261).
+- **Gate (2026-11-25, task `release-1.5.1-20261125`):**
+  `ALL_GATES_OK | gates=4/4 | zip=flexforge-1.5.1.zip | task=release-1.5.1-20261125`.
+
+**BUG 3 — ancora APERTO (residuo):** restano **11/44** helper non legati, per
+ragioni diverse dal cap: il tetto dell'envelope `DEFAULT_BONE_RADIUS = 0.1 m`
+e la competizione/sbudget tra capsule sovrapposte (piu' helper che
+reclamerebbero lo stesso vertice oltre il budget di influenze). Da decidere.
+
+**Nota documenti:** `docs/PROMO.md` e' aggiornato su disco a 1.5.1 ma resta
+escluso dal gitignore globale dell'utente (`~/.gitignore_global`), quindi non e'
+versionato in questo commit.
