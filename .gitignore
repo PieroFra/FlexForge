@@ -4,3 +4,9 @@ __pycache__/
 *.pyc
 *.pyo
 dist/
+
+# artefatti gate generati a runtime (rigenerati da tools\scripts\run_gates.ps1)
+tools/verdict.txt
+tools/metrics.jsonl
+tools/gate.lock
+tools/tests/test_out.txt
