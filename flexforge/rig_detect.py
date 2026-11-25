@@ -26,19 +26,45 @@ for _preset_id, _spec in MUSCLE_PRESETS.items():
     _PRESET_BONES[_preset_id] = (_spec.origin_bone, _spec.insertion_bone)
 
 
-def detect_rig(bone_names):
+# Expected parent links between the 9 canonical muscle anchors, as the
+# canonical name. A link is only checked when the real parent resolves to
+# one of those anchors (so a bone like mixamorig:Hips for the thighs is
+# skipped, not treated as an error). shoulder.L is allowed under spine
+# because rigs without a clavicle bone attach it there.
+_TOPOLOGY_EXPECTATIONS = {
+    "upper_arm.L": ("shoulder.L",),
+    "forearm.L": ("upper_arm.L",),
+    "shoulder.L": ("spine", "spine.001"),
+    "spine": (),
+    "spine.001": ("spine",),
+    "spine.002": ("spine.001",),
+    "thigh.L": ("spine",),
+    "shin.L": ("thigh.L",),
+    "foot.L": ("shin.L",),
+}
+
+
+def detect_rig(bone_names, parents=None):
     """Detect the rig convention and the available presets from bone names.
 
-    `bone_names` is an iterable of bone names as found on the rig. The rig
+    `bone_names` is an iterable of bone names as found on the rig.
+    `parents` is an optional dict {bone_name: parent_name_or_empty} with the
+    real parent chain: it validates the 9 muscle anchors, so a rig that
+    carries the right names but the wrong attachments must not pass as
+    mixamo. The rig
     type is inferred from which alias families resolve: mixamo when
     `mixamorig:`/LeftArm style aliases resolve, bip01 on Bip01 aliases,
     standard on the canonical .L/.R names (also ARP/Rigify def- aliases,
     which resolve through BONE_ALIASES). A preset is available when its
     origin and insertion bones both resolve.
 
-    Return {rig_type, matched, missing, coverage, preset_ids, matched_bones}
-    where coverage is matched/total over the 9 canonical preset bones and
-    preset_ids are the presets whose both bones resolve, in catalog order.
+    Return {rig_type, matched, missing, coverage, preset_ids, matched_bones,
+    topology_ok, topology_checked, topology_bad} where coverage is
+    matched/total over the 9 canonical preset bones and preset_ids are the
+    presets whose both bones resolve and whose anchor chain is intact, in
+    catalog order. topology_ok is None when no parent map is given;
+    topology_bad lists the anchors whose parent contradicts the expected
+    link, so they are not offered as available.
     """
     names = [str(name) for name in bone_names]
     if not names:
@@ -49,6 +75,9 @@ def detect_rig(bone_names):
             "coverage": 0.0,
             "preset_ids": [],
             "matched_bones": {},
+            "topology_ok": None,
+            "topology_checked": 0,
+            "topology_bad": [],
         }
 
     def present(canonical):
@@ -67,8 +96,39 @@ def detect_rig(bone_names):
                 matched += 1
                 matched_bones[canonical] = resolve_bone_name(canonical, names)
 
+    topology_ok = None
+    topology_checked = 0
+    topology_bad = []
+
+    anchor_of_name = {}
+    for canonical in {bone for pair in _PRESET_BONES.values() for bone in pair}:
+        resolved = resolve_bone_name(canonical, names)
+        if resolved in names:
+            anchor_of_name[resolved] = canonical
+
+    if parents is not None:
+        topology_ok = True
+        for bone_name, parent_name in parents.items():
+            if not parent_name or bone_name not in anchor_of_name:
+                continue
+            parent_canonical = anchor_of_name.get(str(parent_name))
+            if parent_canonical is None:
+                continue
+            topology_checked += 1
+            allowed = _TOPOLOGY_EXPECTATIONS.get(anchor_of_name[bone_name], ())
+            if parent_canonical not in allowed:
+                anchor = anchor_of_name[bone_name]
+                if anchor not in topology_bad:
+                    topology_bad.append(anchor)
+        if topology_checked:
+            topology_ok = not bool(topology_bad)
+        else:
+            topology_ok = None
+
     presets = []
     for preset_id, (origin, insertion) in _PRESET_BONES.items():
+        if origin in topology_bad or insertion in topology_bad:
+            continue
         if present(origin) and present(insertion):
             presets.append(preset_id)
 
@@ -107,6 +167,9 @@ def detect_rig(bone_names):
         "coverage": coverage,
         "preset_ids": presets,
         "matched_bones": matched_bones,
+        "topology_ok": topology_ok,
+        "topology_checked": topology_checked,
+        "topology_bad": topology_bad,
     }
 
 
@@ -210,7 +273,11 @@ class FLEXFORGE_OT_detect_rig(bpy.types.Operator):
         if not bone_names:
             self.report({"ERROR"}, "The armature has no bones to detect.")
             return {"CANCELLED"}
-        report = detect_rig(bone_names)
+        parents = {
+            bone.name: (bone.parent.name if bone.parent else "")
+            for bone in getattr(getattr(rig, "data", None), "bones", ())
+        }
+        report = detect_rig(bone_names, parents)
         message = detect_message(report)
         print(message)
         self.report({"INFO"}, message)

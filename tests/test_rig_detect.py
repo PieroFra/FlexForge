@@ -122,8 +122,66 @@ def test_invalid_preset_error():
     assert error is not None, "expected RigDetectError with unknown preset"
 
 
+_MIXAMO_NAMES = [
+    "mixamorig:Hips", "mixamorig:LeftArm", "mixamorig:RightArm",
+    "mixamorig:LeftForeArm", "mixamorig:RightForeArm",
+    "mixamorig:LeftShoulder", "mixamorig:RightShoulder",
+    "mixamorig:LeftUpLeg", "mixamorig:RightUpLeg",
+    "mixamorig:LeftLeg", "mixamorig:RightLeg",
+    "mixamorig:LeftFoot", "mixamorig:RightFoot",
+    "mixamorig:Spine", "mixamorig:Spine1", "mixamorig:Spine2",
+]
+
+_MIXAMO_PARENTS = {
+    "mixamorig:Hips": "",
+    "mixamorig:Spine": "mixamorig:Hips",
+    "mixamorig:Spine1": "mixamorig:Spine",
+    "mixamorig:Spine2": "mixamorig:Spine1",
+    "mixamorig:LeftShoulder": "mixamorig:Spine1",
+    "mixamorig:RightShoulder": "mixamorig:Spine1",
+    "mixamorig:LeftArm": "mixamorig:LeftShoulder",
+    "mixamorig:RightArm": "mixamorig:RightShoulder",
+    "mixamorig:LeftForeArm": "mixamorig:LeftArm",
+    "mixamorig:RightForeArm": "mixamorig:RightArm",
+    "mixamorig:LeftUpLeg": "mixamorig:Hips",
+    "mixamorig:RightUpLeg": "mixamorig:Hips",
+    "mixamorig:LeftLeg": "mixamorig:LeftUpLeg",
+    "mixamorig:RightLeg": "mixamorig:RightUpLeg",
+    "mixamorig:LeftFoot": "mixamorig:LeftLeg",
+    "mixamorig:RightFoot": "mixamorig:RightLeg",
+}
+
+
+def test_detect_topology_ok():
+    report = rig_detect.detect_rig(_MIXAMO_NAMES, _MIXAMO_PARENTS)
+    assert report["topology_ok"] is True, report
+    assert report["topology_checked"] == 7, report
+    assert report["coverage"] == 1.0, report
+    assert len(report["preset_ids"]) == 9, report
+
+
+def test_detect_topology_rejects_wrong_chain():
+    chain = dict(_MIXAMO_PARENTS)
+    chain["mixamorig:LeftForeArm"] = "mixamorig:LeftLeg"
+    report = rig_detect.detect_rig(_MIXAMO_NAMES, chain)
+    assert report["topology_ok"] is False, report
+    assert "forearm.L" in report["topology_bad"], report
+    assert "biceps" not in report["preset_ids"], report
+    assert "triceps" not in report["preset_ids"], report
+    assert "deltoid" in report["preset_ids"], report
+
+
+def test_detect_topology_without_parents():
+    report = rig_detect.detect_rig(_MIXAMO_NAMES)
+    assert report["topology_ok"] is None, report
+    assert len(report["preset_ids"]) == 9, report
+
+
 def _main():
     tests = [
+        test_detect_topology_ok,
+        test_detect_topology_rejects_wrong_chain,
+        test_detect_topology_without_parents,
         test_detect_standard,
         test_detect_mixamo,
         test_detect_bip01,

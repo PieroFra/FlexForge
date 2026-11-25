@@ -10,6 +10,21 @@
 - **Specchio di backup (Google Drive):** `<backup_mirror>/`
 - **Regola:** dopo ogni avanzamento si risincronizza il Drive con `rsync -av` **senza `--delete`**; il Drive non ÃƒÂ¨ mai la destinazione di lavoro.
 
+## Verifica milestone A — rig reale (fatto)
+
+`detect_rig` valida i 9 ancoraggi muscolari, non solo i loro nomi: con la mappa `parents` (osso -> genitore) verifica i link canonici (`upper_arm.L` sotto `shoulder.L`, `spine.001` sotto `spine`, `forearm.L` sotto `upper_arm.L` ...) e mette in `topology_bad` gli ancoraggi che contraddicono l'aspettativa; i preset con ancoraggio invalido restano fuori da `preset_ids`. Senza `parents`, `topology_ok` resta `None` e la detezione resta quella di prima.
+
+Verifica su rig esterno reale (non committata: Mixamo non è redistribuibile):
+
+- `Xbot.glb` — three.js examples, 2.930.032 byte, sha256 `002f8d269de68e5dce3d25195caf390d1aa359bbfaae3fcf4c8dc78ec36c3ba5`, in `%TEMP%\flexforge_rigtest\`
+- Blender 5.2.0 LTS headless, import glTF: `detect_rig` -> `rig_type=mixamo`, `matched 9`, `missing 0`, `coverage 1.00`, 9/9 preset disponibili
+- `coverage 1.00` è 9/9 **ossa canoniche**, non 9/67 ossa del rig
+- `pectoral`, `latissimus`, `gluteus` hanno `origin_r == origin` (ossa centrali, specchio inerte): corretto, non un difetto
+- test offline: `tests\test_rig_detect.py` 10/10, con `_MIXAMO_NAMES` e `_MIXAMO_PARENTS`
+- gate: `ALL_GATES_OK | gates=4/4`, suite `RISULTATO passati=249 falliti=0 totale=249` (246 + 3 nuovi)
+
+Ancora aperto: ARP (`DEF-*`) e Bip01 su rig reali — non esistono per me lecito da scaricare, servono dal tuo archivio.
+
 ## Struttura codice
 
 Struttura reale attuale (fasi 0Ã¢â‚¬â€œ3 Ã¢â‚¬â€ bootstrap, muscolo bicipite, utility pesi, verifica deformazione, export glTF, weight transfer, pulizia pesi, mirror pesi; scritti dal `coder`):
@@ -105,3 +120,5 @@ Il runner headless e l'Engine smoke test (Godot) sono oggi le uniche verifiche c
 2. Dati reali soltanto: mai inventare conteggi, log o hash; riportarli verbatim dalla fonte reale.
 3. Nessun gate dichiarato superato: la decisione spetta ai comandi reali della Tabella Verifica, quando esisteranno.
 4. Il `coder` scrive codice e test; `ops` tiene allineati documenti e specchio Drive.
+  
+"5. **Subagent obbligatori**: ogni lavoro che richiede strumenti (script, gate, audit, test, revisione) va delegato a un subagent con istruzioni autosufficienti e con il file di contesto che serve. Non si esegue a mano. Se un sub fallisce o va in timeout, si riavvia con `resume` spezzando il compito, non si ripete il tentativo."  

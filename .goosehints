@@ -78,3 +78,5 @@ non versionata. Non assumere il percorso: leggi la tabella Verifica di
   refactoring opportunistico.
 - Messaggi e report brevi: file:righe, cosa e' cambiato, cosa resta da
   verificare.
+  
+"5. Subagent obbligatori: ogni lavoro che richiede strumenti (script, gate, audit, test, revisione) va delegato a un subagent con istruzioni autosufficienti e con il file di contesto che serve. Non si esegue a mano. Se un sub fallisce o va in timeout, si riavvia con resume spezzando il compito."  
