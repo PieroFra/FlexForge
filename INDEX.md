@@ -2,7 +2,7 @@
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 83
+- righe totali: 86
 - simboli: 2
 - classi: 0
 
@@ -90,11 +90,28 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 ## Metodi
 
 
+# INDEX AST — fullbody_pipeline.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 266
+- simboli: 9
+- classi: 1
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `FullBodyError` | 21-22 | 0 |
+
+## Metodi
+
+
 # INDEX AST — i18n.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 106
+- righe totali: 109
 - simboli: 3
 - classi: 0
 
@@ -149,7 +166,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 243
+- righe totali: 249
 - simboli: 8
 - classi: 1
 
@@ -157,13 +174,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_bake_shape_keys` | 193-242 | 1 |
+| `FLEXFORGE_OT_bake_shape_keys` | 199-248 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_bake_shape_keys` (193-242)
+### `FLEXFORGE_OT_bake_shape_keys` (199-248)
 
-- `execute`: 210-242
+- `execute`: 216-248
 
 
 # INDEX AST — muscle_bounce.py
@@ -191,7 +208,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 245
+- righe totali: 312
 - simboli: 14
 - classi: 1
 
@@ -199,7 +216,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `SkinningError` | 22-23 | 0 |
+| `SkinningError` | 31-32 | 0 |
 
 ## Metodi
 
@@ -230,8 +247,8 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 90
-- simboli: 3
+- righe totali: 150
+- simboli: 4
 - classi: 0
 
 ## Classi
@@ -240,6 +257,27 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 |---|---|---|
 
 ## Metodi
+
+
+# INDEX AST — muscle_fullbody.py
+
+Generato da `ast_index.py`: file derivato, non modificare a mano.
+
+- righe totali: 116
+- simboli: 2
+- classi: 1
+
+## Classi
+
+| Classe | Righe | Metodi |
+|---|---|---|
+| `FLEXFORGE_OT_apply_full_body` | 23-116 | 1 |
+
+## Metodi
+
+### `FLEXFORGE_OT_apply_full_body` (23-116)
+
+- `execute`: 53-116
 
 
 # INDEX AST — muscle_presets.py
@@ -300,29 +338,29 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 199
-- simboli: 10
+- righe totali: 240
+- simboli: 12
 - classi: 1
 
 ## Classi
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_OT_bind_muscles` | 148-198 | 1 |
+| `FLEXFORGE_OT_bind_muscles` | 189-239 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_bind_muscles` (148-198)
+### `FLEXFORGE_OT_bind_muscles` (189-239)
 
-- `execute`: 167-198
+- `execute`: 208-239
 
 
 # INDEX AST — rig_detect.py
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 218
-- simboli: 9
+- righe totali: 298
+- simboli: 10
 - classi: 2
 
 ## Classi
@@ -330,13 +368,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 | Classe | Righe | Metodi |
 |---|---|---|
 | `RigDetectError` | 18-19 | 0 |
-| `FLEXFORGE_OT_detect_rig` | 196-217 | 1 |
+| `FLEXFORGE_OT_detect_rig` | 272-297 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_OT_detect_rig` (196-217)
+### `FLEXFORGE_OT_detect_rig` (272-297)
 
-- `execute`: 204-217
+- `execute`: 280-297
 
 
 # INDEX AST — settings.py
@@ -376,7 +414,7 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 Generato da `ast_index.py`: file derivato, non modificare a mano.
 
-- righe totali: 160
+- righe totali: 171
 - simboli: 4
 - classi: 1
 
@@ -384,13 +422,13 @@ Generato da `ast_index.py`: file derivato, non modificare a mano.
 
 | Classe | Righe | Metodi |
 |---|---|---|
-| `FLEXFORGE_PT_main` | 43-159 | 1 |
+| `FLEXFORGE_PT_main` | 43-170 | 1 |
 
 ## Metodi
 
-### `FLEXFORGE_PT_main` (43-159)
+### `FLEXFORGE_PT_main` (43-170)
 
-- `draw`: 52-159
+- `draw`: 52-170
 
 
 # INDEX AST — verify.py

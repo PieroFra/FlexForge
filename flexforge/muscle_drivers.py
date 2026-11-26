@@ -4,17 +4,63 @@
 # APIs used are present on Blender 4.2 and 5.3.
 
 from .muscle import MUSCLE_PREFIX
+from .muscle_anatomy import ANATOMY_DIRECTIONS, _normalize, muscle_family_from_bone
 from .muscle_shape import SHAPE_KEY_PREFIX, BakeError, shape_key_name_for_bone
 
 STRETCH_TO_CONSTRAINT = "STRETCH_TO"
 DEFAULT_MAX_ANGLE_RAD = 1.5708
 DEFAULT_BULGE_SCALE = 1.0
 MAX_BULGE_SCALE = 3.0
+_ROT_AXES = ("ROT_X", "ROT_Y", "ROT_Z")
 
 
 def scale_prop_name(key_name):
     """Custom property on the mesh object holding the bulge scale of a key."""
     return "%s_scale" % key_name
+
+
+def contraction_axis_for_muscle(key_name, insertion_bone):
+    """Return the insertion rotation axis and sign for directional contraction."""
+    family = muscle_family_from_bone(str(key_name or "").replace(".", "_"))
+    if family not in ANATOMY_DIRECTIONS or insertion_bone is None:
+        return None
+    head = getattr(insertion_bone, "head_local", None)
+    tail = getattr(insertion_bone, "tail_local", None)
+    if head is None or tail is None:
+        return None
+    bone_dir = _normalize((
+        tail[0] - head[0], tail[1] - head[1], tail[2] - head[2],
+    ))
+    if bone_dir is None:
+        return None
+    anatomy = ANATOMY_DIRECTIONS[family]
+    hinge = _normalize((
+        bone_dir[1] * anatomy[2] - bone_dir[2] * anatomy[1],
+        bone_dir[2] * anatomy[0] - bone_dir[0] * anatomy[2],
+        bone_dir[0] * anatomy[1] - bone_dir[1] * anatomy[0],
+    ))
+    if hinge is None:
+        return None
+    matrix = getattr(insertion_bone, "matrix_local", None)
+    try:
+        axes = [
+            _normalize((matrix[0][i], matrix[1][i], matrix[2][i]))
+            for i in range(3)
+        ]
+    except (TypeError, IndexError, KeyError):
+        axes = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+    if any(axis is None for axis in axes):
+        return None
+    best_index = 0
+    best_dot = 0.0
+    for index, axis in enumerate(axes):
+        dot = axis[0] * hinge[0] + axis[1] * hinge[1] + axis[2] * hinge[2]
+        if abs(dot) > abs(best_dot):
+            best_dot = dot
+            best_index = index
+    if abs(best_dot) <= 1e-5:
+        return None
+    return _ROT_AXES[best_index], (1.0 if best_dot > 0.0 else -1.0)
 
 def _driver_bone_pair(armature, bones, key_name):
     """(origin, insertion) bone names driving a shape key, or (None, None)."""
@@ -55,7 +101,8 @@ def attach_pose_drivers(obj, armature, max_angle_rad=DEFAULT_MAX_ANGLE_RAD):
         origin, insertion = _driver_bone_pair(armature, bones, key_name)
         if origin not in by_name or insertion not in by_name:
             continue
-        rest_angle = by_name[origin].matrix_local.to_quaternion().rotation_difference(by_name[insertion].matrix_local.to_quaternion()).angle
+        ins_bone = by_name[insertion]
+        contraction_axis = contraction_axis_for_muscle(key_name, ins_bone)
         # The slider ceiling must leave room for the user-editable scale. Shape
         # keys cannot hold ID properties, so the scale lives on the mesh object.
         key_block.slider_max = max(float(getattr(key_block, "slider_max", 1.0)),
@@ -72,18 +119,31 @@ def attach_pose_drivers(obj, armature, max_angle_rad=DEFAULT_MAX_ANGLE_RAD):
         driver.type = "SCRIPTED"
         variable = driver.variables.new()
         variable.name = "ang"
-        variable.type = "ROTATION_DIFF"
-        variable.targets[0].id = armature
-        variable.targets[0].bone_target = origin
-        variable.targets[1].id = armature
-        variable.targets[1].bone_target = insertion
+        if contraction_axis is not None:
+            rot_axis, sign = contraction_axis
+            variable.type = "TRANSFORMS"
+            variable.targets[0].id = armature
+            variable.targets[0].bone_target = insertion
+            variable.targets[0].transform_type = rot_axis
+            variable.targets[0].transform_space = "LOCAL_SPACE"
+            expr = "min(1.0, max(0.0, %sang / %.6f)) * scale" % (
+                "" if sign > 0 else "-", max_angle_rad)
+        else:
+            rest_angle = by_name[origin].matrix_local.to_quaternion().rotation_difference(
+                ins_bone.matrix_local.to_quaternion()).angle
+            variable.type = "ROTATION_DIFF"
+            variable.targets[0].id = armature
+            variable.targets[0].bone_target = origin
+            variable.targets[1].id = armature
+            variable.targets[1].bone_target = insertion
+            expr = ("min(1.0, max(0.0, abs(ang - %.6f) / %.6f)) * scale"
+                    % (rest_angle, max_angle_rad))
         scale_var = driver.variables.new()
         scale_var.name = "scale"
         scale_var.type = "SINGLE_PROP"
         scale_var.targets[0].id_type = "OBJECT"
         scale_var.targets[0].id = obj
         scale_var.targets[0].data_path = '["%s"]' % prop_name
-        driver.expression = ("min(1.0, max(0.0, abs(ang - %.6f) / %.6f)) * scale"
-                             % (rest_angle, max_angle_rad))
+        driver.expression = expr
         created += 1
     return created

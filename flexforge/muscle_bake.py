@@ -10,7 +10,9 @@ from .armatura import armature_of_mesh
 from .muscle import MUSCLE_PREFIX
 from .muscle_anatomy import smooth_shape_deltas
 from .muscle_skinning import _armature_to_mesh_matrix, _matrix_point
-from .muscle_drivers import (attach_pose_drivers, DEFAULT_MAX_ANGLE_RAD, STRETCH_TO_CONSTRAINT, _driver_bone_pair)
+from .muscle_drivers import (attach_pose_drivers, contraction_axis_for_muscle,
+                             DEFAULT_MAX_ANGLE_RAD, STRETCH_TO_CONSTRAINT,
+                             _driver_bone_pair)
 from .muscle_shape import (BakeError, DEFAULT_BONE_RADIUS, DEFAULT_DISPLACEMENT,
                            MAX_DISPLACEMENT_RATIO, SHAPE_KEY_PREFIX, bone_radius,
                            compute_muscle_shape_deltas, shape_key_name_for_bone)
@@ -31,22 +33,26 @@ def _non_muscle_ancestor(name, bone_parents):
 
 def collapse_muscle_weights_to_parent(weights, bone_parents,
                                       max_influences=MAX_INFLUENCES_DEFAULT):
-    """Pour the `muscle_*` weights on the first non-muscle ancestor.
-
-    Helpers without an ancestor are dropped; result limited and normalized.
-    """
+    """Strip `muscle_*` weights, falling back to the ancestor only when no skeletal weight exists."""
     collapsed = {}
     for vertex, groups in weights.items():
-        merged = {}
+        skeletal = {}
+        muscles = {}
         for name, weight in groups.items():
             if abs(weight) <= EPS:
                 continue
-            target = name
             if str(name).startswith(MUSCLE_PREFIX):
-                target = _non_muscle_ancestor(name, bone_parents)
-                if target is None:
-                    continue
-            merged[target] = merged.get(target, 0.0) + weight
+                muscles[name] = muscles.get(name, 0.0) + weight
+            else:
+                skeletal[name] = skeletal.get(name, 0.0) + weight
+        if skeletal:
+            collapsed[vertex] = skeletal
+            continue
+        merged = {}
+        for name, weight in muscles.items():
+            target = _non_muscle_ancestor(name, bone_parents)
+            if target is not None:
+                merged[target] = merged.get(target, 0.0) + weight
         collapsed[vertex] = merged
     return limit_influences(collapsed, max_influences)
 

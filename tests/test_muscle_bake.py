@@ -1503,6 +1503,140 @@ def test_settings_drive_by_pose_defaults_true():
     assert prop.keywords["default"] is True, prop.keywords
 
 
+def test_collapse_weights_preserves_skeletal_without_ancestor_leak():
+    """Skeletal vertices must keep their original bone distribution without helper parent leak."""
+    bone_parents = {
+        "muscle_latissimus_01": "spine.001",
+        "muscle_pectoral_01": "spine.002",
+        "muscle_biceps_01": "upper_arm.L",
+        "muscle_triceps_01": "upper_arm.L",
+    }
+    weights = {
+        0: {
+            "upper_arm.L": 0.2,
+            "muscle_latissimus_01": 0.4,
+            "muscle_pectoral_01": 0.4,
+        },
+        1: {
+            "forearm.L": 0.4,
+            "muscle_biceps_01": 0.3,
+            "muscle_triceps_01": 0.3,
+        },
+        2: {"muscle_biceps_01": 0.6, "muscle_triceps_01": 0.4},
+    }
+    collapsed = muscle_bake.collapse_muscle_weights_to_parent(weights, bone_parents)
+    assert collapsed[0] == {"upper_arm.L": 1.0}, collapsed[0]
+    assert "spine.001" not in collapsed[0], collapsed[0]
+    assert "spine.002" not in collapsed[0], collapsed[0]
+    assert collapsed[1] == {"forearm.L": 1.0}, collapsed[1]
+    assert collapsed[2] == {"upper_arm.L": 1.0}, collapsed[2]
+
+
+def test_contraction_axis_opposite_signs_for_antagonists():
+    """Agonist and antagonist muscles on the same limb segment must have opposite driver signs."""
+    from flexforge.muscle_drivers import contraction_axis_for_muscle
+
+    forearm = _FakeBone("forearm.L", (0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+    biceps_axis, biceps_sign = contraction_axis_for_muscle("flexforge_biceps.L", forearm)
+    triceps_axis, triceps_sign = contraction_axis_for_muscle("flexforge_triceps.L", forearm)
+    assert biceps_axis == triceps_axis and biceps_axis is not None, (biceps_axis, triceps_axis)
+    assert biceps_sign == -triceps_sign and biceps_sign != 0, (biceps_sign, triceps_sign)
+
+    shin = _FakeBone("shin.L", (0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+    quad_axis, quad_sign = contraction_axis_for_muscle("flexforge_quadriceps.L", shin)
+    ham_axis, ham_sign = contraction_axis_for_muscle("flexforge_hamstring.L", shin)
+    assert quad_axis == ham_axis and quad_axis is not None, (quad_axis, ham_axis)
+    assert quad_sign == -ham_sign and quad_sign != 0, (quad_sign, ham_sign)
+
+    collinear = _FakeBone("forearm.L", (0.0, 0.0, 0.0), (0.0, -1.0, 0.0))
+    assert contraction_axis_for_muscle("flexforge_biceps", collinear) is None
+
+
+def test_pose_driver_antagonist_exclusivity_real_blender():
+    """Bending a joint in one direction activates the agonist while keeping the antagonist at 0."""
+    armature_data = bpy.data.armatures.new("flexforge_antag_arm")
+    armature = bpy.data.objects.new("flexforge_antag_arm", armature_data)
+    bpy.context.scene.collection.objects.link(armature)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    origin_bone = armature_data.edit_bones.new("upper_arm.L")
+    origin_bone.head = (0.0, 0.0, 0.0)
+    origin_bone.tail = (0.0, 0.0, -1.0)
+    insertion_bone = armature_data.edit_bones.new("forearm.L")
+    insertion_bone.head = (0.0, 0.0, -1.0)
+    insertion_bone.tail = (0.0, 0.0, -2.0)
+    insertion_bone.parent = origin_bone
+    biceps_bone = armature_data.edit_bones.new("muscle_biceps_01")
+    biceps_bone.head = (0.0, -0.05, 0.0)
+    biceps_bone.tail = (0.0, -0.05, -1.0)
+    biceps_bone.parent = origin_bone
+    triceps_bone = armature_data.edit_bones.new("muscle_triceps_01")
+    triceps_bone.head = (0.0, 0.05, 0.0)
+    triceps_bone.tail = (0.0, 0.05, -1.0)
+    triceps_bone.parent = origin_bone
+    for bone in (origin_bone, insertion_bone, biceps_bone, triceps_bone):
+        bone.head_radius = 0.2
+        bone.tail_radius = 0.2
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for helper_name in ("muscle_biceps_01", "muscle_triceps_01"):
+        constraint = armature.pose.bones[helper_name].constraints.new(type="STRETCH_TO")
+        constraint.subtarget = "forearm.L"
+
+    mesh = bpy.data.meshes.new("flexforge_antag_mesh")
+    mesh.from_pydata([(0.1, 0.0, -1.5), (-0.1, 0.0, -1.5)], [], [])
+    obj = bpy.data.objects.new("flexforge_antag_mesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.vertex_groups.new(name="upper_arm.L").add([0, 1], 0.5, "REPLACE")
+    obj.vertex_groups.new(name="muscle_biceps_01").add([0], 0.5, "REPLACE")
+    obj.vertex_groups.new(name="muscle_triceps_01").add([1], 0.5, "REPLACE")
+    modifier = obj.modifiers.new(name="Armature", type="ARMATURE")
+    modifier.object = armature
+
+    def evaluate_keys():
+        owner = obj.data.shape_keys
+        if getattr(owner, "update_tag", None) is not None:
+            owner.update_tag()
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        blocks = obj.evaluated_get(depsgraph).data.shape_keys.key_blocks
+        return blocks["flexforge_biceps"].value, blocks["flexforge_triceps"].value
+
+    try:
+        report = muscle_bake.apply_muscle_bake(
+            obj, armature, strip_muscle_weights=False, drive_by_pose=True
+        )
+        assert report["drivers_added"] == 2, report
+        from flexforge.muscle_drivers import contraction_axis_for_muscle
+
+        ins_rest = armature.data.bones["forearm.L"]
+        rot_axis, bic_sign = contraction_axis_for_muscle("flexforge_biceps", ins_rest)
+        assert rot_axis in ("ROT_X", "ROT_Y", "ROT_Z") and bic_sign != 0, (rot_axis, bic_sign)
+        axis_idx = {"ROT_X": 0, "ROT_Y": 1, "ROT_Z": 2}[rot_axis]
+        pose_bone = armature.pose.bones["forearm.L"]
+        pose_bone.rotation_mode = "XYZ"
+
+        # Flexion: biceps contracts, triceps stays at 0.
+        euler = [0.0, 0.0, 0.0]
+        euler[axis_idx] = bic_sign * (math.pi / 2.0)
+        pose_bone.rotation_euler = tuple(euler)
+        bic_val, tri_val = evaluate_keys()
+        assert bic_val > 0.5, (bic_val, tri_val)
+        assert tri_val == 0.0, (bic_val, tri_val)
+
+        # Extension: triceps contracts, biceps stays at 0.
+        euler[axis_idx] = -bic_sign * (math.pi / 2.0)
+        pose_bone.rotation_euler = tuple(euler)
+        bic_val, tri_val = evaluate_keys()
+        assert bic_val == 0.0, (bic_val, tri_val)
+        assert tri_val > 0.5, (bic_val, tri_val)
+    finally:
+        bpy.data.objects.remove(obj, do_unlink=True)
+        bpy.data.objects.remove(armature, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        bpy.data.armatures.remove(armature_data)
+
+
 def _main():
     tests = [
         test_shape_key_name_for_bone,
@@ -1541,6 +1675,9 @@ def _main():
         test_apply_muscle_bake_smooth_iterations_blends_edges,
         test_pose_driver_exposes_editable_bulge_scale,
         test_settings_drive_by_pose_defaults_true,
+        test_collapse_weights_preserves_skeletal_without_ancestor_leak,
+        test_contraction_axis_opposite_signs_for_antagonists,
+        test_pose_driver_antagonist_exclusivity_real_blender,
     ]
 
     passed = 0
