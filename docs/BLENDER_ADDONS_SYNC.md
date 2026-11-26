@@ -36,7 +36,7 @@ Prima di qualsiasi `git commit` o `git push` dalla cartella `BLENDER ADDONS\Flex
 
 ```powershell
 git status --short
-git check-ignore -v dist/flexforge-1.6.0.zip .agents/ tools/verdict.txt __pycache__/
+git check-ignore -v dist/flexforge-1.6.1.zip .agents/ tools/verdict.txt __pycache__/
 ```
 
 Verificare che `dist/`, `.agents/`, `__pycache__/` e `tools/verdict.txt` non compaiano mai in `git diff --cached --name-only`.
@@ -51,8 +51,8 @@ robocopy "<SORGENTE_REPO>" "C:\Users\checc\Desktop\BLENDER ADDONS\FlexForge" /E 
 
 ## Ricostruzione dello `.zip` locale su Windows
 
-Per generare `dist\flexforge-1.6.0.zip` in locale dentro `BLENDER ADDONS\FlexForge` (usando il Python di Blender 5.2, senza `__pycache__`):
+Per generare `dist\flexforge-1.6.1.zip` in locale dentro `BLENDER ADDONS\FlexForge` (usando il Python di Blender 5.2, senza `__pycache__`):
 
 ```powershell
-& "<BLENDER_52>\5.2\python\bin\python.exe" -c "import pathlib, zipfile; root=pathlib.Path('flexforge'); out=pathlib.Path('dist/flexforge-1.6.0.zip'); out.parent.mkdir(exist_ok=True); z=zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED); [z.write(p,p.as_posix()) for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix not in ('.pyc','.pyo')]; z.close()"
+& "<BLENDER_52>\5.2\python\bin\python.exe" -c "import pathlib, zipfile; root=pathlib.Path('flexforge'); out=pathlib.Path('dist/flexforge-1.6.1.zip'); out.parent.mkdir(exist_ok=True); z=zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED); [z.write(p,p.as_posix()) for p in sorted(root.rglob('*')) if p.is_file() and '__pycache__' not in p.parts and p.suffix not in ('.pyc','.pyo')]; z.close()"
 ```

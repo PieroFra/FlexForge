@@ -35,9 +35,9 @@ Ancora aperto: Bip01 su rig reali.
 
 ## Struttura codice
 
-Struttura reale attuale (**1.6.0** — 29 moduli `.py` + `blender_manifest.toml` = 30 file, 16 classi registrate in `_CLASSES`, 22 suite in `tests/` + `tools/tests/test_benchmark.py` = 269 test):
+Struttura reale attuale (**1.6.1** — 29 moduli `.py` + `blender_manifest.toml` = 30 file, 16 classi registrate in `_CLASSES`, 25 suite in `tests/` + `tools/tests/test_benchmark.py` = 284 test):
 
-- `flexforge/__init__.py` — entry point dell'addon: `bl_info` versione **1.6.0**, compatibilità minima Blender **4.2** (85 righe); registra esattamente **sedici classi** via `_CLASSES`: `FLEXFORGE_PT_main`, `FLEXFORGE_OT_create_biceps`, `FLEXFORGE_OT_limit_weights`, `FLEXFORGE_OT_verify`, `FLEXFORGE_OT_export_gltf`, `FLEXFORGE_OT_weight_transfer`, `FLEXFORGE_OT_cleanup_weights`, `FLEXFORGE_OT_mirror_weights`, `FLEXFORGE_OT_create_muscle_preset`, `FLEXFORGE_OT_bind_muscles`, `FLEXFORGE_OT_bake_shape_keys`, `FLEXFORGE_OT_bake_bounce`, `FLEXFORGE_OT_clear_muscles`, `FLEXFORGE_OT_apply_budget`, `FLEXFORGE_OT_detect_rig`, `FLEXFORGE_OT_apply_full_body`;
+- `flexforge/__init__.py` — entry point dell'addon: `bl_info` versione **1.6.1**, compatibilità minima Blender **4.2** (85 righe); registra esattamente **sedici classi** via `_CLASSES`: `FLEXFORGE_PT_main`, `FLEXFORGE_OT_create_biceps`, `FLEXFORGE_OT_limit_weights`, `FLEXFORGE_OT_verify`, `FLEXFORGE_OT_export_gltf`, `FLEXFORGE_OT_weight_transfer`, `FLEXFORGE_OT_cleanup_weights`, `FLEXFORGE_OT_mirror_weights`, `FLEXFORGE_OT_create_muscle_preset`, `FLEXFORGE_OT_bind_muscles`, `FLEXFORGE_OT_bake_shape_keys`, `FLEXFORGE_OT_bake_bounce`, `FLEXFORGE_OT_clear_muscles`, `FLEXFORGE_OT_apply_budget`, `FLEXFORGE_OT_detect_rig`, `FLEXFORGE_OT_apply_full_body`;
 - `flexforge/ui.py` — pannello Sidebar `FLEXFORGE_PT_main` (1a classe);
 - `flexforge/muscle.py` — operatore `FLEXFORGE_OT_create_biceps` (2a classe);
 - `flexforge/weights.py` — utility pesi e operatore `FLEXFORGE_OT_limit_weights` (3a classe);
@@ -66,9 +66,9 @@ Struttura reale attuale (**1.6.0** — 29 moduli `.py` + `blender_manifest.toml`
 - `flexforge/weight_nomi.py` — nomi dei vertex group, mapping L/R e alias multi-rig (standard, Mixamo, Bip01, Auto-Rig Pro; nessun operatore);
 - `flexforge/armatura.py` — helper armatura condiviso (nessun operatore);
 - `flexforge/spatial_grid.py` — griglia spaziale 3D O(N) (nessun operatore);
-- `flexforge/blender_manifest.toml` — manifest Extensions Blender 4.2+ (`version = "1.6.0"`);
+- `flexforge/blender_manifest.toml` — manifest Extensions Blender 4.2+ (`version = "1.6.1"`);
 - `tests/` — 22 suite headless (`test_armatura.py` 3, `test_bootstrap.py` 6, `test_engine_budget.py` 7, `test_export_gltf.py` 18, `test_i18n.py` 3, `test_muscle.py` 11, `test_muscle_anatomy.py` 6, `test_muscle_bake.py` 36, `test_muscle_bounce.py` 8, `test_muscle_clear.py` 4, `test_muscle_fullbody.py` 21, `test_muscle_presets.py` 16, `test_muscle_shape.py` 15, `test_muscle_skinning.py` 34, `test_rig_detect.py` 11, `test_ui_probe.py` 7, `test_verify.py` 8, `test_weight_nomi.py` 5, `test_weight_transfer.py` 11, `test_weights.py` 10, `test_weights_cleanup.py` 9, `test_weights_mirror.py` 9 -> 258 test) + `tools/tests/test_benchmark.py` (13 test) = **271 test totali**;
-- `dist/flexforge-1.6.0.zip` — pacchetto Extensions **1.6.0** (**30 file, 68590 byte**, costruito con Python di Blender 5.2.0 `python3.13`, sha256 `d32666669657a4ca3964526fad2d770634dc77cf750fe7c2f051521bb1d37807`, `ZIP_AUDIT_OK`, `extension validate` exit 0, `ALL_GATES_OK | gates=4/4` su Blender 4.2.3 e 5.2.0, `FULLBODY_GODOT_E2E_OK | rigs=2/2`).
+- `dist/flexforge-1.6.1.zip` — pacchetto Extensions **1.6.1** (**30 file, 71564 byte**, costruito con Python di Blender 5.2.0 `python3.13`, sha256 `382c147814835ba13152e0d5904f5e52bef1548f6e755e7acf37aa22a19737e7`, `ZIP_AUDIT_OK`, `extension validate` exit 0, `ALL_GATES_OK | gates=4/4` su Blender 5.2.0).
 
 **Ancora fuori perimetro:** brush/auto-weights avanzati (esclusi in Fase 3), pubblicazione.
 **Fissato:** compatibilitÃƒÂ  Blender **4.2+**, con l'intera suite di test (10 file) eseguita su **4.2 e 5.3 il 2026-11-21** (esiti verbatim nella Tabella Verifica, exit 0 su entrambi). Il 5.3 ÃƒÂ¨ giÃƒÂ  disponibile al path `<blender_path>/`; l'host di sistema resta 5.2.2 LTS invariato.

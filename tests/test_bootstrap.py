@@ -72,7 +72,7 @@ def test_bl_info_fields():
     info = flexforge.bl_info
     assert info["name"] == "FlexForge", info.get("name")
     assert tuple(info["blender"]) == (4, 2, 0), info.get("blender")
-    assert tuple(info["version"]) == (1, 6, 0), info.get("version")
+    assert tuple(info["version"]) == (1, 6, 1), info.get("version")
     assert info["category"] == "Rigging", info.get("category")
 
 
@@ -163,7 +163,7 @@ def test_valid_manifest():
     data = outcome["data"]
     assert data.get("id") == "flexforge", data.get("id")
     assert data.get("name") == "FlexForge", data.get("name")
-    assert str(data.get("version")) == "1.6.0", data.get("version")
+    assert str(data.get("version")) == "1.6.1", data.get("version")
     assert str(data.get("blender_version_min")) == "4.2.0", data.get(
         "blender_version_min"
     )

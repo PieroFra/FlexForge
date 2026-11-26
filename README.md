@@ -1,6 +1,6 @@
 # FlexForge
 
-**Status: Alpha (`v1.6.0`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
+**Status: Alpha (`v1.6.1`)** — Early testing release. Pose-driven muscle workflows are under active testing and refinement; behavior may change between builds.
 
 ![CI](https://github.com/PieroFra/FlexForge/actions/workflows/ci.yml/badge.svg)
 
@@ -19,16 +19,15 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 - **Bounce is baked to the timeline**, not live: secondary motion only appears after baking, not while dragging a pose in real time.
 - **Linked meshes** (library overrides / linked data) require *Make Local* before baking shape keys.
 - **No muscle mesh is generated**: FlexForge builds helper bones and skins the mesh you already have.
-- **Blender Extensions** status: **1.6.0** is published and **Approved** on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`).
+- **Blender Extensions** status: **1.6.0** is published and **Approved** on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`); **1.6.1** is validated locally and pending upload.
 
 ## Status: Alpha vs Local Tests vs Blender Extensions
 
 | Channel | Status |
 | --- | --- |
-| Release (Alpha) | `v1.6.0` — current build (single-undo full-body pipeline), 100% free GPL-3.0-or-later |
+| Release (Alpha) | `v1.6.1` — current build (single-undo full-body pipeline), 100% free GPL-3.0-or-later |
 | Local tests & CI | 271/271 checks pass on Blender 4.2.3 LTS and 5.2.0 LTS (`ALL_GATES_OK 4/4`), plus Godot 4.7.2 E2E (`FULLBODY_GODOT_E2E_OK`) |
-| Blender Extensions | `1.6.0` published & Approved on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`) |
-
+| Blender Extensions | `1.6.0` published & Approved on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`); `1.6.1` validated locally, pending upload |
 ## Features & Weight Toolkit
 
 - **One-click full body (single undo)**: detect the rig convention (standard, Mixamo, Bip01, Auto-Rig Pro aliases) and run helper creation, capsule skinning, shape-key baking, verification, and engine budget in a single undoable operator.
@@ -50,4 +49,4 @@ blender -b --factory-startup --python tests/test_bootstrap.py
 
 Run every `tests/test_*.py` file; the CI matrix (`.github/workflows/ci.yml`) runs them all on Blender 4.2.3 and 5.2.0, on Ubuntu and Windows, and additionally builds and validates the extension zip.
 
-Install from a build: edit the `dist/flexforge-1.6.0.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).
+Install from a build: edit the `dist/flexforge-1.6.1.zip` in Blender via *Edit > Preferences > Add-ons > Install* (or drop `flexforge/` into your add-ons folder).

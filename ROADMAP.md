@@ -1,6 +1,6 @@
 # ROADMAP — FlexForge
 
-**Stato reale (allineato il 2026-11-25):** fasi 0, 1, 2, 3 e Milestone A (1.5.0) chiuse con gate; versione **1.1** già pubblicata e approvata su Blender Extensions; **1.5.0** pronta per upload utente (`256/256`); **1.6.0** implementata e verificata in profondità in locale (pipeline full-body end-to-end in un solo undo, `269/269` su Blender 4.2.3 e 5.2.0, `ALL_GATES_OK 4/4`, E2E Godot 4.7.2 `FULLBODY_GODOT_E2E_OK`). Il piano dettagliato aggiornato `1.5/1.6 → 2.0` (100% gratis GPL-3.0-or-later) è in [`docs/UPDATE_PLAN_1.5_TO_2.0.md`](docs/UPDATE_PLAN_1.5_TO_2.0.md).
+**Stato reale (allineato il 2026-11-25):** fasi 0, 1, 2, 3 e Milestone A (1.5.0) chiuse con gate; versione **1.1** già pubblicata e approvata su Blender Extensions; **1.5.0** pronta per upload utente (`256/256`); **1.6.1** build locale corrente (pipeline full-body end-to-end in un solo undo, `284/284` su Blender 5.2.0, `ALL_GATES_OK 4/4`, `extension validate` exit 0; 1.6.0 verificata su Blender 4.2.3 e 5.2.0 con E2E Godot 4.7.2 `FULLBODY_GODOT_E2E_OK`). Il piano dettagliato aggiornato `1.5/1.6 → 2.0` (100% gratis GPL-3.0-or-later) è in [`docs/UPDATE_PLAN_1.5_TO_2.0.md`](docs/UPDATE_PLAN_1.5_TO_2.0.md).
 
 Le fasi vanno chiuse una alla volta, con gli anelli della catena di montaggio verdi prima di passare alla successiva.
 
