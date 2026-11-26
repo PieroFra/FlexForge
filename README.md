@@ -19,7 +19,7 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 - **Bounce is baked to the timeline**, not live: secondary motion only appears after baking, not while dragging a pose in real time.
 - **Linked meshes** (library overrides / linked data) require *Make Local* before baking shape keys.
 - **No muscle mesh is generated**: FlexForge builds helper bones and skins the mesh you already have.
-- **Blender Extensions** status: **1.1** is live and approved on `extensions.blender.org`; **1.5.0** is queued for upload; **1.6.0** is the current local build (`blender --command extension validate` exit 0).
+- **Blender Extensions** status: **1.6.0** is published and **Approved** on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`).
 
 ## Status: Alpha vs Local Tests vs Blender Extensions
 
@@ -27,7 +27,7 @@ FlexForge is a Blender add-on that builds anatomical muscle systems on existing 
 | --- | --- |
 | Release (Alpha) | `v1.6.0` — current build (single-undo full-body pipeline), 100% free GPL-3.0-or-later |
 | Local tests & CI | 271/271 checks pass on Blender 4.2.3 LTS and 5.2.0 LTS (`ALL_GATES_OK 4/4`), plus Godot 4.7.2 E2E (`FULLBODY_GODOT_E2E_OK`) |
-| Blender Extensions | `1.1` live & approved; `1.5.0` pending user upload; `1.6.0` validated locally |
+| Blender Extensions | `1.6.0` published & Approved on [extensions.blender.org](https://extensions.blender.org/add-ons/flexforge/versions/) (Min Blender 4.2.0, sha256 `da7dacc40e2e0ed2d241fea4778299bb7be4a34029fc24c9df23ee864108d043`) |
 
 ## Features & Weight Toolkit
 
