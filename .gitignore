@@ -11,3 +11,6 @@ tools/verdict.txt
 tools/metrics.jsonl
 tools/gate.lock
 tools/tests/test_out.txt
+
+# metadati agenti teamwork (non tracciati)
+.agents/

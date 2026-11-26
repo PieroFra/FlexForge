@@ -77,7 +77,8 @@ try {
     $prevEA = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $testOut = & powershell -NoProfile -ExecutionPolicy Bypass -File $runner -Blender $exe 2>&1
+        $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+        $testOut = & $psExe -NoProfile -ExecutionPolicy Bypass -File $runner -Blender $exe 2>&1
         $testExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $prevEA

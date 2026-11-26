@@ -1,6 +1,6 @@
 # ROADMAP — FlexForge
 
-**Stato reale (allineato il 2026-11-23):** fasi 0, 1, 2 e 3 chiuse con gate (bootstrap, MVP muscolare, verifica deformazione, export glTF, smoke ENGINE Godot PASS; toolkit Weight Paint: transfer + pulizia + mirror; Unity editor 6000.6.6f1 con licenza Personal attiva e smoke PASS; Unreal fuori perimetro per decisione). Milestones chiuse dopo le fasi: v1.1 (Muscle Length Solver / Volume Preservation / Capsule Chain), v1.2 (Collision-Lite), v1.3 (Pose-Space Correction RBF), v1.4 (Bake & Engine-Neutral Export round-trip), benchmark golden scene (13/13). **Fase 4 in corso** (pre-release: audit preset-compatible, audit documentazione, packaging Extensions, probe UI, traduzione EN, i18n). **Fase 5 aperta** (Extensions / Blender Artists / Reddit trasmessi tramite publisher). **v2.0 bloccata** finché i benchmark non passano (già verdi) e solo su decisione dell'utente — preset anatomici automatici e rig detection.
+**Stato reale (allineato il 2026-11-25):** fasi 0, 1, 2, 3 e Milestone A (1.5.0) chiuse con gate; versione **1.1** già pubblicata e approvata su Blender Extensions; **1.5.0** pronta per upload utente (`256/256`); **1.6.0** implementata e verificata in profondità in locale (pipeline full-body end-to-end in un solo undo, `269/269` su Blender 4.2.3 e 5.2.0, `ALL_GATES_OK 4/4`, E2E Godot 4.7.2 `FULLBODY_GODOT_E2E_OK`). Il piano dettagliato aggiornato `1.5/1.6 → 2.0` (100% gratis GPL-3.0-or-later) è in [`docs/UPDATE_PLAN_1.5_TO_2.0.md`](docs/UPDATE_PLAN_1.5_TO_2.0.md).
 
 Le fasi vanno chiuse una alla volta, con gli anelli della catena di montaggio verdi prima di passare alla successiva.
 
@@ -75,21 +75,23 @@ Obiettivo: rendere il pacchetto rilasciabile: compatibilità proprietà, documen
 - **Prerelease 1.2.0 (2026-11-23, preparata):** Engine Budget First (`flexforge.apply_budget`, `flexforge/engine_budget.py`) — report e fit per LOD (influences/shape_keys/bones, `within_budget`), GUI gate PASS in Blender 5.2 reale (evidence class b), suite `passed=239/239` dopo fix bootstrap 1.2.0 (`616de45`); ZIP `dist/flexforge-1.2.0.zip` 27 file, sha256 `c7115ba50ab8f71933e80e9b80e1cea8b592fbf3b4ea527456c58585cb9875f6`, `VERSION_CHECK_OK version 1.2.0`.
 - **Fuori perimetro:** pubblicazione sui canali, trailer/marketing.
 
-## Roadmap fissata fino a D — decisioni 2026-11-23
+## Roadmap aggiornata 1.5 / 1.6 → 2.0 (decisioni 2026-11-25)
 
-Ordine vincolato, un modulo alla volta, gate verdi prima di avanzare:
+Ordine vincolato, un modulo alla volta, gate verdi prima di avanzare (dettagli completi in [`docs/UPDATE_PLAN_1.5_TO_2.0.md`](docs/UPDATE_PLAN_1.5_TO_2.0.md)):
 
-- **A. Rig Detection + One-Click Full-Body Preset → release 1.5** (prima milestone dopo la prerelease 1.2.0). Detection pura bpy-free (Mixamo, Bip01, ARP + alias esistenti in `weight_nomi.py`) + generatore full-body che riusa `create_muscle_preset`/`bind_muscles`. Test su rig professionali reali obbligatori (`rig-tester`/`rig-viewer`) prima del gate.
-- **B. Migrazione X-Muscle → game-ready → release 2.0 (insieme ad A).** Lettura della mappatura flexor/extensor dell'utente, conversione in shape key bone-driven con verifica in motore (`ENGINE_CHECK_OK`). Nessun codice X-Muscle dentro il repo. **Senza B, la v2.0 non ha senso.**
-- **C. Engine Shape Key Reduction per motore → release 2.0+** (dopo B). Estende `engine_budget.py`: riduzione intelligente delle shape key per motore (scarta le meno usate, Godot VRAM), non solo troncamento in ordine.
-- **D. Video showcase post-Approval → Fase 5.** Dopo l'approvazione su Blender Extensions: GIF Bip01 vera (`run_real_demo.py`, scelta A) + `docs/PROMO.md` aggiornato + post Blender Artists/Reddit via publisher. Trailer/marketing prima dell'Approval restano fuori perimetro.
+- **1.5.x — Pubblicazione Extensions (pronta per upload utente).** La versione `1.1` è già approvata su Blender Extensions; l'utente carica `dist/flexforge-1.5.0.zip` seguendo `docs/PUBLICATION_PLAN.md`.
+- **1.6.0 — Full body end-to-end (implementata & deep-tested in locale).** `flexforge/fullbody_pipeline.py` + `FLEXFORGE_OT_apply_full_body`: detection → helper → capsule skinning → bake shape key + driver → verifica deformazione → budget engine LOD-aware in **un solo undo**, con rollback su errore e warning budget.
+- **1.7 — Bip01 + hardening rig + UI coverage (de-risked).** Fixture sintetica Bip01 non degenere (teste/code distinte per Blender 4.2.3), report copertura preset/motivi in UI e *manual bone picker* fallback per qualsiasi rig.
+- **1.8 — Milestone B: Migrazione X-Muscle (solo dati di scena, de-risked).** Contratto dati aperto documentato + scene sintetiche X-Muscle-like + fallback JSON/manuale (nessun codice X-Muscle nel repo); verifica su `.blend` reale come gate opzionale su campione fornito da utente/community.
+- **1.9 — Milestone C: Engine Shape Key Reduction.** Estensione di `engine_budget.py` per riduzione intelligente delle shape key (utilizzo/deformazione + budget VRAM Godot), golden scene + benchmark 13/13.
+- **2.0 — RC + Release 100% gratis (GPL-3.0-or-later) su Blender Extensions.** Release Candidate (1–2 settimane), fix, pubblicazione finale 100% gratuita (zero piani Pro/commerciali) + annuncio Blender Artists / Reddit + showcase (Milestone D).
 
-**Fuori perimetro sempre:** jiggle/live VFX su viewport (contraddice "export-first, peso zero VFX"), nuovi brush/pie-menu weight paint (terreno EasyWeight), brush/auto-weights avanzati, Unreal, nuove preset singole finché i benchmark non restano verdi.
+**Fuori perimetro sempre:** jiggle/live VFX su viewport, nuovi brush/pie-menu weight paint, brush/auto-weights avanzati, Unreal.
 
 ## Fase 5 — Rilascio
 
-Obiettivo: pubblicare su Blender Extensions, Blender Artists e Reddit.
+Obiettivo: pubblicare su Blender Extensions (100% GPL-3.0-or-later), Blender Artists e Reddit.
 
-- **Prerequisiti:** fase 4 chiusa con audit verdi e packaging verificato.
-- **Contenuto:** upload su Blender Extensions, thread Blender Artists, post Reddit.
-- **Fuori perimetro:** sviluppo di nuove funzionalità (roadmap successiva separata).
+- **Prerequisiti:** fase corrente chiusa con audit verdi, `ALL_GATES_OK 4/4` su Blender 4.2.3 e 5.2.0 e `extension validate` exit 0.
+- **Contenuto:** upload su Blender Extensions, thread Blender Artists, post Reddit (vedi `docs/PUBLICATION_PLAN.md`).
+- **Fuori perimetro:** vendite commerciali/Pro, trailer/marketing prima dell'approvazione.

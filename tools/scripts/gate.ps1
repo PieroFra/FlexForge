@@ -63,7 +63,8 @@ try {
     $prevEA = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $out = & powershell @verifyArgs 2>&1
+        $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+        $out = & $psExe @verifyArgs 2>&1
         $verifyExit = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $prevEA

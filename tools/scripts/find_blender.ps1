@@ -35,11 +35,11 @@ function Get-BlenderInstall {
     if (-not $exe) {
         $candidates = @()
 
-        $isWindows = if ($null -ne $IsWindows) { $IsWindows } else { ($PSVersionTable.PSEdition -eq "Desktop") -or $true }
-        $isLinux = if ($null -ne $IsLinux) { $IsLinux } else { $false }
-        $isMacOS = if ($null -ne $IsMacOS) { $IsMacOS } else { $false }
+        $ffIsWindows = if ($null -ne $IsWindows) { $IsWindows } else { ($PSVersionTable.PSEdition -eq "Desktop") -or $true }
+        $ffIsLinux = if ($null -ne $IsLinux) { $IsLinux } else { $false }
+        $ffIsMacOS = if ($null -ne $IsMacOS) { $IsMacOS } else { $false }
 
-        if ($isWindows) {
+        if ($ffIsWindows) {
             $pf = $env:ProgramFiles
             $pf86 = ${env:ProgramFiles(x86)}
             if ($pf) {
@@ -54,14 +54,17 @@ function Get-BlenderInstall {
             }
             if ($pf) { $candidates += (Join-Path $pf "Blender Foundation\blender.exe") }
             if ($pf86) { $candidates += (Join-Path $pf86 "Blender Foundation\blender.exe") }
-        } elseif ($isLinux) {
+        } elseif ($ffIsLinux) {
             $candidates += @("/opt/blender/blender", "/usr/local/blender/blender", "/usr/bin/blender")
             if ($env:HOME) {
                 $candidates += Get-ChildItem -Path (Join-Path $env:HOME "blender*") -Directory -ErrorAction SilentlyContinue |
                     Sort-Object Name |
                     ForEach-Object { Join-Path $_.FullName "blender" }
+                $candidates += Get-ChildItem -Path (Join-Path $env:HOME "blender") -Directory -ErrorAction SilentlyContinue |
+                    Sort-Object Name |
+                    ForEach-Object { Join-Path $_.FullName "blender" }
             }
-        } elseif ($isMacOS) {
+        } elseif ($ffIsMacOS) {
             $candidates += @("/Applications/Blender.app/Contents/MacOS/Blender")
             if ($env:HOME) {
                 $candidates += Get-ChildItem -Path (Join-Path $env:HOME "Applications") -Directory -ErrorAction SilentlyContinue |

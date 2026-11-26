@@ -340,7 +340,8 @@ try {
         $prevEA = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
         try {
-            $table = & powershell @args 2>&1
+            $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+            $table = & $psExe @args 2>&1
             $runnerExit = $LASTEXITCODE
         } finally {
             $ErrorActionPreference = $prevEA

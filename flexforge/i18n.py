@@ -70,6 +70,8 @@ _PROPERTY_NAMES = {
     "Path": "Percorso",
     "Export path": "Percorso di esportazione",
     "Threshold": "Soglia",
+    "Bind radius": "Raggio di collegamento",
+    "LOD": "LOD",
 }
 
 

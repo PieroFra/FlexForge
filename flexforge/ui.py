@@ -91,9 +91,17 @@ class FLEXFORGE_PT_main(bpy.types.Panel):
                 op.origin_bone = settings.origin_bone
                 op.insertion_bone = settings.insertion_bone
                 op.segments = settings.segments
-        box.operator(
+        op_full = box.operator(
             "flexforge.apply_full_body", text="Create full body", icon="MOD_SKIN"
         )
+        if settings is not None:
+            op_full.mirror_lr = settings.mirror_lr
+            op_full.bind_radius = settings.bind_radius
+            op_full.displacement = settings.displacement
+            op_full.anatomical_taper = settings.anatomical_taper
+            op_full.directional_bias = settings.directional_bias
+            op_full.smooth_iterations = settings.smooth_iterations
+            op_full.drive_by_pose = settings.drive_by_pose
         if settings is not None:
             box.prop(settings, "bind_radius")
         op_bind = box.operator(
